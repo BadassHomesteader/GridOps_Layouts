@@ -46,10 +46,12 @@ Plans:
   4. User can delete selected elements with keyboard shortcut
   5. All element types (walls, offices, racks, pallets, forklift) are placeable and resizable
   6. Shelving racks display configurable pallet capacity per shelf level
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] TBD during phase planning
+- [ ] 02-01-PLAN.md — Element base class, 5 warehouse subclasses, ElementManager
+- [ ] 02-02-PLAN.md — Sidebar palette, drag-to-canvas, selection, keyboard shortcuts
+- [ ] 02-03-PLAN.md — Drag-to-move, mouse event priority, end-to-end verification
 
 ### Phase 3: Capacity & Forklift
 **Goal**: User can calculate total warehouse pallet capacity and test aisle accessibility interactively
@@ -88,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Canvas | 2/2 | Complete | 2026-01-30 |
-| 2. Drawing & Elements | 0/TBD | Not started | - |
+| 2. Drawing & Elements | 0/3 | In Progress | - |
 | 3. Capacity & Forklift | 0/TBD | Not started | - |
 | 4. Persistence | 0/TBD | Not started | - |
 
