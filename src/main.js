@@ -72,6 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const printManager = new PrintManager(elementManager, capacityManager, canvasSetup, viewport, grid);
   sidebar.setPrintManager(printManager);
 
+  // Alignment buttons
+  sidebar.setSelectionManager(selectionManager);
+
   // Dimension editor (double-click element on canvas to edit)
   const dimensionInput = new DimensionInput(canvas, elementManager, selectionManager, coordinateConverter, capacityManager);
 

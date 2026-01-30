@@ -14,6 +14,7 @@ export class CapacityManager {
     this.palletConfig = { width: 48, height: 40 }; // default pallet dimensions in inches
     this.propertyAddress = '';
     this.ceilingHeight = 0; // ceiling height in inches (0 = no limit)
+    this.inventoryPerPallet = 0; // items per pallet (0 = not tracking)
 
     // Subscribe to element changes
     this.elementManager.subscribe(() => this.recalculate());
@@ -34,8 +35,10 @@ export class CapacityManager {
    * Notify all observers of capacity change
    */
   notify() {
+    const inventoryTotal = this.inventoryPerPallet > 0
+      ? this.totalCapacity * this.inventoryPerPallet : 0;
     for (const observer of this.observers) {
-      observer(this.totalCapacity);
+      observer(this.totalCapacity, inventoryTotal);
     }
   }
 

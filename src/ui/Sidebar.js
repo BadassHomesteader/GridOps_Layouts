@@ -14,6 +14,7 @@ import { Forklift } from '../shapes/Forklift.js';
 import { PerimeterWall } from '../shapes/PerimeterWall.js';
 import { UnitManager } from '../managers/UnitManager.js';
 import { UndoManager } from '../managers/UndoManager.js';
+import { AlignmentManager } from '../managers/AlignmentManager.js';
 
 const PALETTE = [
   { type: 'wall', label: 'Wall', desc: '1ft x 10ft', icon: '|' },
@@ -88,6 +89,14 @@ export class Sidebar {
   }
 
   /**
+   * Set selection manager for alignment buttons
+   */
+  setSelectionManager(selectionManager) {
+    this.alignmentManager = new AlignmentManager(selectionManager);
+    this.createAlignmentButtons();
+  }
+
+  /**
    * Create save/open/print buttons at top of sidebar
    */
   createFileButtons() {
@@ -138,6 +147,119 @@ export class Sidebar {
     container.appendChild(printBtn);
     // Insert at very top of sidebar
     this.sidebarElement.insertBefore(container, this.sidebarElement.firstChild);
+  }
+
+  /**
+   * Create alignment and distribution buttons
+   */
+  createAlignmentButtons() {
+    const container = document.createElement('div');
+    container.style.cssText = `
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+    `;
+
+    const header = document.createElement('div');
+    header.textContent = 'Align';
+    header.style.cssText = `
+      font-weight: 600;
+      font-size: 12px;
+      color: #333;
+      margin-bottom: 6px;
+      padding: 0 4px;
+    `;
+    container.appendChild(header);
+
+    const btnStyle = `
+      width: 32px;
+      height: 28px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      background: #f5f5f5;
+      color: #555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      padding: 0;
+    `;
+
+    const makeBtn = (title, svg, action) => {
+      const btn = document.createElement('button');
+      btn.title = title;
+      btn.innerHTML = svg;
+      btn.style.cssText = btnStyle;
+      btn.addEventListener('click', action);
+      btn.addEventListener('mouseenter', () => {
+        btn.style.background = '#e0e0e0';
+        btn.style.borderColor = '#999';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.background = '#f5f5f5';
+        btn.style.borderColor = '#ccc';
+      });
+      return btn;
+    };
+
+    // SVG icons (16x16 viewBox)
+    const svgWrap = (paths) => `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">${paths}</svg>`;
+
+    const alignRow = document.createElement('div');
+    alignRow.style.cssText = `display: flex; gap: 4px; margin-bottom: 4px;`;
+
+    // Align Left: vertical line on left, rects flush to it
+    alignRow.appendChild(makeBtn('Align Left',
+      svgWrap('<line x1="2" y1="1" x2="2" y2="15"/><rect x="2" y="3" width="10" height="3" fill="currentColor" stroke="none"/><rect x="2" y="9" width="7" height="3" fill="currentColor" stroke="none"/>'),
+      () => this.alignmentManager.alignLeft()
+    ));
+
+    // Align Right: vertical line on right, rects flush to it
+    alignRow.appendChild(makeBtn('Align Right',
+      svgWrap('<line x1="14" y1="1" x2="14" y2="15"/><rect x="4" y="3" width="10" height="3" fill="currentColor" stroke="none"/><rect x="7" y="9" width="7" height="3" fill="currentColor" stroke="none"/>'),
+      () => this.alignmentManager.alignRight()
+    ));
+
+    // Align Top: horizontal line on top, rects flush to it
+    alignRow.appendChild(makeBtn('Align Top',
+      svgWrap('<line x1="1" y1="2" x2="15" y2="2"/><rect x="3" y="2" width="3" height="10" fill="currentColor" stroke="none"/><rect x="9" y="2" width="3" height="7" fill="currentColor" stroke="none"/>'),
+      () => this.alignmentManager.alignTop()
+    ));
+
+    // Align Bottom: horizontal line on bottom, rects flush to it
+    alignRow.appendChild(makeBtn('Align Bottom',
+      svgWrap('<line x1="1" y1="14" x2="15" y2="14"/><rect x="3" y="4" width="3" height="10" fill="currentColor" stroke="none"/><rect x="9" y="7" width="3" height="7" fill="currentColor" stroke="none"/>'),
+      () => this.alignmentManager.alignBottom()
+    ));
+
+    container.appendChild(alignRow);
+
+    const distRow = document.createElement('div');
+    distRow.style.cssText = `display: flex; gap: 4px;`;
+
+    // Distribute Horizontal: three rects spread horizontally
+    distRow.appendChild(makeBtn('Distribute Horizontal',
+      svgWrap('<rect x="1" y="4" width="3" height="8" fill="currentColor" stroke="none"/><rect x="6.5" y="4" width="3" height="8" fill="currentColor" stroke="none"/><rect x="12" y="4" width="3" height="8" fill="currentColor" stroke="none"/>'),
+      () => this.alignmentManager.distributeHorizontal()
+    ));
+
+    // Distribute Vertical: three rects spread vertically
+    distRow.appendChild(makeBtn('Distribute Vertical',
+      svgWrap('<rect x="4" y="1" width="8" height="3" fill="currentColor" stroke="none"/><rect x="4" y="6.5" width="8" height="3" fill="currentColor" stroke="none"/><rect x="4" y="12" width="8" height="3" fill="currentColor" stroke="none"/>'),
+      () => this.alignmentManager.distributeVertical()
+    ));
+
+    container.appendChild(distRow);
+
+    // Insert after file buttons (second child, after capacity display and file buttons)
+    const fileSection = this.sidebarElement.querySelector('div');
+    if (fileSection && fileSection.nextSibling) {
+      this.sidebarElement.insertBefore(container, fileSection.nextSibling);
+    } else {
+      this.sidebarElement.appendChild(container);
+    }
   }
 
   /**

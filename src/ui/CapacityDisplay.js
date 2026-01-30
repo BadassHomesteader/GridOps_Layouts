@@ -95,7 +95,7 @@ export class CapacityDisplay {
     `;
 
     const counterLabel = document.createElement('span');
-    counterLabel.textContent = 'Total: ';
+    counterLabel.textContent = 'Pallets: ';
 
     this.countSpan = document.createElement('span');
     this.countSpan.textContent = '0';
@@ -103,12 +103,70 @@ export class CapacityDisplay {
       font-weight: 600;
     `;
 
-    const counterUnit = document.createElement('span');
-    counterUnit.textContent = ' pallets';
-
     counterRow.appendChild(counterLabel);
     counterRow.appendChild(this.countSpan);
-    counterRow.appendChild(counterUnit);
+
+    // Items per pallet row
+    const ippRow = document.createElement('div');
+    ippRow.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #333;
+    `;
+
+    const ippLabel = document.createElement('span');
+    ippLabel.textContent = 'Items/Pallet:';
+
+    this.ippInput = document.createElement('input');
+    this.ippInput.type = 'number';
+    this.ippInput.value = '';
+    this.ippInput.placeholder = '0';
+    this.ippInput.min = 0;
+    this.ippInput.step = 1;
+    this.ippInput.style.cssText = `
+      width: 50px;
+      padding: 3px 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-family: inherit;
+      font-size: 12px;
+      color: #333;
+    `;
+
+    this.ippInput.addEventListener('input', () => {
+      const val = parseInt(this.ippInput.value);
+      this.capacityManager.inventoryPerPallet = (!isNaN(val) && val > 0) ? val : 0;
+      this.capacityManager.recalculate();
+    });
+
+    ippRow.appendChild(ippLabel);
+    ippRow.appendChild(this.ippInput);
+
+    // Inventory total row (only visible when items/pallet > 0)
+    this.inventoryRow = document.createElement('div');
+    this.inventoryRow.style.cssText = `
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #333;
+      display: none;
+    `;
+
+    const invLabel = document.createElement('span');
+    invLabel.textContent = 'Inventory: ';
+
+    this.inventorySpan = document.createElement('span');
+    this.inventorySpan.textContent = '0';
+    this.inventorySpan.style.cssText = `font-weight: 600;`;
+
+    const invUnit = document.createElement('span');
+    invUnit.textContent = ' items';
+
+    this.inventoryRow.appendChild(invLabel);
+    this.inventoryRow.appendChild(this.inventorySpan);
+    this.inventoryRow.appendChild(invUnit);
 
     // Ceiling height row
     const ceilingRow = document.createElement('div');
@@ -167,6 +225,8 @@ export class CapacityDisplay {
     display.appendChild(this.addressInput);
     display.appendChild(title);
     display.appendChild(counterRow);
+    display.appendChild(ippRow);
+    display.appendChild(this.inventoryRow);
     display.appendChild(ceilingRow);
 
     this.containerElement.appendChild(display);
@@ -182,12 +242,27 @@ export class CapacityDisplay {
   }
 
   /**
+   * Set inventory per pallet value and update input
+   */
+  setInventoryPerPallet(count) {
+    if (this.ippInput) {
+      this.ippInput.value = count > 0 ? count : '';
+    }
+  }
+
+  /**
    * Setup event subscriptions
    */
   setupSubscriptions() {
     // Subscribe to capacity changes
-    this.capacityManager.subscribe((total) => {
+    this.capacityManager.subscribe((total, inventoryTotal) => {
       this.countSpan.textContent = total;
+      if (inventoryTotal > 0) {
+        this.inventorySpan.textContent = inventoryTotal.toLocaleString();
+        this.inventoryRow.style.display = '';
+      } else {
+        this.inventoryRow.style.display = 'none';
+      }
     });
   }
 }

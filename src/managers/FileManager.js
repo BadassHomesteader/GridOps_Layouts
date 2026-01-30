@@ -35,6 +35,7 @@ export class FileManager {
         width: this.capacityManager.getPalletWidth(),
         height: this.capacityManager.getPalletHeight()
       },
+      inventoryPerPallet: this.capacityManager.inventoryPerPallet || 0,
       elements
     }, null, 2);
   }
@@ -73,6 +74,14 @@ export class FileManager {
         data.palletConfig.width,
         data.palletConfig.height
       );
+    }
+
+    // Restore inventory per pallet
+    if (data.inventoryPerPallet != null) {
+      this.capacityManager.inventoryPerPallet = data.inventoryPerPallet;
+      if (this.capacityDisplay) {
+        this.capacityDisplay.setInventoryPerPallet(data.inventoryPerPallet);
+      }
     }
 
     // Recreate elements

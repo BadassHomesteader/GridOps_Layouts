@@ -117,6 +117,8 @@ export class SelectionManager {
     const maxY = Math.max(y1, y2);
 
     return this.elementManager.getAll().filter(el => {
+      // Skip perimeter walls during drag selection
+      if (el.type === 'perimeterWall') return false;
       const b = el.getBounds();
       return !(b.x + b.width < minX || b.x > maxX || b.y + b.height < minY || b.y > maxY);
     });
