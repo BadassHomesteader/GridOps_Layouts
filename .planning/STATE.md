@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Phase: 2 of 4 (Drawing & Elements)
-Plan: 1 of 4 in phase 2
+Plan: 2 of 4 in phase 2
 Status: In progress
-Last activity: 2026-01-30 — Completed 02-01-PLAN.md
+Last activity: 2026-01-30 — Completed 02-02-PLAN.md
 
-Progress: [████░░░░░░] 33%
+Progress: [█████░░░░░] 44%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 3.3 min
-- Total execution time: 0.17 hours
+- Total plans completed: 4
+- Average duration: 3.0 min
+- Total execution time: 0.20 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-canvas | 2 | 7min | 3.5min |
-| 02-drawing-elements | 1 | 3min | 3.0min |
+| 02-drawing-elements | 2 | 5.4min | 2.7min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2min), 01-02 (5min), 02-01 (3min)
-- Trend: Stable
+- Last 5 plans: 01-01 (2min), 01-02 (5min), 02-01 (3min), 02-02 (2.4min)
+- Trend: Accelerating
 
 *Updated after each plan completion*
 
@@ -57,6 +57,11 @@ Recent decisions affecting current work:
 - ElementManager stores elements in simple array (no spatial indexing yet)
 - Hit testing iterates reverse, rendering iterates forward (correct z-order)
 - All dimensions in world coordinates (48px = 1 foot)
+- Sidebar fixed left 180px, canvas adjusts with margin-left
+- HTML5 Drag and Drop API for element placement
+- Hit-testing prioritized over panning (click element selects, click empty pans)
+- Selection overlay with corner resize handles (visual only, no behavior yet)
+- Draw callback order: grid → elements → selection overlay
 
 ### Pending Todos
 
@@ -69,7 +74,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 02-01-PLAN.md (Element object model)
+Stopped at: Completed 02-02-PLAN.md (Interactive placement & selection)
 Resume file: None
 
 ---
