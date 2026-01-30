@@ -6,12 +6,14 @@
  * - Viewport (pan/zoom camera)
  * - Renderer (animation loop)
  * - CoordinateConverter (coordinate space conversions)
+ * - Grid (grid rendering with snap-to-grid)
  * - Input handlers (pan/zoom)
  */
 import { CanvasSetup } from './canvas/canvas.js';
 import { Viewport } from './canvas/viewport.js';
 import { Renderer } from './canvas/renderer.js';
 import { CoordinateConverter } from './grid/coordinates.js';
+import { Grid } from './grid/grid.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Get canvas element
@@ -26,6 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewport = new Viewport();
   const renderer = new Renderer(canvasSetup, viewport);
   const coordinateConverter = new CoordinateConverter(viewport);
+  const grid = new Grid();
+
+  // Register grid drawing
+  renderer.addDrawCallback(grid.draw.bind(grid));
 
   // --- Pan Input ---
   let isPanning = false;
@@ -91,6 +97,145 @@ document.addEventListener('DOMContentLoaded', () => {
     // Apply zoom
     viewport.zoom(zoomFactor, canvasX, canvasY);
   }, { passive: false });
+
+  // --- Grid Resolution Toggle UI ---
+  const createResolutionToggle = () => {
+    const container = document.createElement('div');
+    container.id = 'grid-controls';
+    container.style.cssText = `
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      color: white;
+    `;
+
+    const createButton = (text, resolution) => {
+      const btn = document.createElement('button');
+      btn.textContent = text;
+      btn.dataset.resolution = resolution;
+      btn.style.cssText = `
+        padding: 4px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+      `;
+
+      btn.addEventListener('mouseenter', () => {
+        if (grid.resolution !== resolution) {
+          btn.style.background = 'rgba(255, 255, 255, 0.2)';
+        }
+      });
+
+      btn.addEventListener('mouseleave', () => {
+        if (grid.resolution !== resolution) {
+          btn.style.background = 'rgba(255, 255, 255, 0.1)';
+        }
+      });
+
+      btn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        grid.setResolution(resolution);
+        updateActiveButton();
+      });
+
+      return btn;
+    };
+
+    const btn1ft = createButton('1ft', '1ft');
+    const btn6in = createButton('6in', '6in');
+
+    const updateActiveButton = () => {
+      [btn1ft, btn6in].forEach(btn => {
+        const isActive = btn.dataset.resolution === grid.resolution;
+        btn.style.background = isActive ? 'rgba(100, 200, 255, 0.4)' : 'rgba(255, 255, 255, 0.1)';
+        btn.style.borderColor = isActive ? 'rgba(100, 200, 255, 0.8)' : 'rgba(255, 255, 255, 0.3)';
+      });
+    };
+
+    container.appendChild(btn1ft);
+    container.appendChild(btn6in);
+    document.body.appendChild(container);
+
+    updateActiveButton();
+  };
+
+  createResolutionToggle();
+
+  // --- Snap-to-Grid Indicator ---
+  let currentMouseWorld = { x: 0, y: 0 };
+  let isShiftHeld = false;
+
+  // Track Shift key state
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Shift') {
+      isShiftHeld = true;
+    }
+  });
+
+  window.addEventListener('keyup', (event) => {
+    if (event.key === 'Shift') {
+      isShiftHeld = false;
+    }
+  });
+
+  // Track mouse position in world coordinates
+  canvas.addEventListener('mousemove', (event) => {
+    // Only update if not panning (reuse existing isPanning check)
+    if (!isPanning) {
+      const canvasX = event.clientX - canvasRect.left;
+      const canvasY = event.clientY - canvasRect.top;
+      currentMouseWorld = coordinateConverter.screenToWorld(canvasX, canvasY);
+    }
+  });
+
+  // Draw snap indicator
+  const drawSnapIndicator = (ctx, viewport, deltaTime) => {
+    if (!currentMouseWorld) return;
+
+    const spacing = grid.getSpacing();
+    let indicatorPos;
+
+    if (isShiftHeld) {
+      // Free-form mode: show at raw world position
+      indicatorPos = currentMouseWorld;
+    } else {
+      // Snap mode: show at snapped grid position
+      indicatorPos = grid.snapToGrid(currentMouseWorld.x, currentMouseWorld.y);
+    }
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(100, 200, 255, 0.15)';
+    ctx.fillRect(
+      indicatorPos.x - spacing / 2,
+      indicatorPos.y - spacing / 2,
+      spacing,
+      spacing
+    );
+    ctx.restore();
+  };
+
+  renderer.addDrawCallback(drawSnapIndicator);
+
+  // Prevent pan from starting when clicking UI controls
+  const originalMouseDown = canvas.onmousedown;
+  canvas.addEventListener('mousedown', (event) => {
+    if (event.target !== canvas) {
+      event.stopPropagation();
+      return;
+    }
+  });
 
   // Start render loop
   renderer.start();
