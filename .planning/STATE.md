@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Phase: 3 of 4 (Capacity & Forklift)
-Plan: 1 of 2 in phase 3
-Status: In progress
-Last activity: 2026-01-30 — Completed 03-01-PLAN.md (Capacity Counter)
+Plan: 2 of 2 in phase 3
+Status: Phase complete
+Last activity: 2026-01-30 — Completed 03-02-PLAN.md (Forklift Driving)
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 2.6 min
-- Total execution time: 0.26 hours
+- Total plans completed: 7
+- Average duration: 2.5 min
+- Total execution time: 0.29 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [██████░░░░] 60%
 |-------|-------|-------|----------|
 | 01-foundation-canvas | 2 | 7min | 3.5min |
 | 02-drawing-elements | 3 | 7.4min | 2.5min |
-| 03-capacity-forklift | 1 | 2min | 2.0min |
+| 03-capacity-forklift | 2 | 4min | 2.0min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (3min), 02-02 (2.4min), 02-03 (2min), 03-01 (2min)
-- Trend: Stabilizing at ~2 min/plan
+- Last 5 plans: 02-02 (2.4min), 02-03 (2min), 03-01 (2min), 03-02 (2min)
+- Trend: Stabilized at 2 min/plan
 
 *Updated after each plan completion*
 
@@ -70,6 +70,11 @@ Recent decisions affecting current work:
 - CapacityManager calculates racks (levels × palletsPerLevel) + pallets (ceiling ÷ palletHeight)
 - Default ceiling height 144 inches (12 feet)
 - Capacity display positioned above Elements palette in sidebar
+- Arrow keys preventDefault when forklift exists (no page scrolling during driving)
+- Separate X/Y collision testing (slide along obstacles, no sticky corners)
+- Normalized diagonal movement (no sqrt(2) speed boost)
+- Skip pallets in collision detection (forklift drives over floor pallets)
+- Red outline on blocking element (shows user exactly what's blocking path)
 
 ### Pending Todos
 
@@ -82,7 +87,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 03-01-PLAN.md (Capacity Counter)
+Stopped at: Completed 03-02-PLAN.md (Forklift Driving) — Phase 3 complete
 Resume file: None
 
 ---
