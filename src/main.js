@@ -15,6 +15,8 @@ import { Renderer } from './canvas/renderer.js';
 import { CoordinateConverter } from './grid/coordinates.js';
 import { Grid } from './grid/grid.js';
 import { ElementManager } from './managers/ElementManager.js';
+import { SelectionManager } from './interaction/Selection.js';
+import { KeyboardController } from './interaction/KeyboardInput.js';
 import { Sidebar } from './ui/Sidebar.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,13 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize element management and UI
   const elementManager = new ElementManager();
+  const selectionManager = new SelectionManager(elementManager);
+  const keyboardController = new KeyboardController(selectionManager);
   const sidebarElement = document.getElementById('sidebar');
   const sidebar = new Sidebar(sidebarElement, coordinateConverter, elementManager, grid);
   sidebar.setupCanvasDrop(canvas);
 
-  // Register draw callbacks (order matters: grid -> elements)
+  // Register draw callbacks (order matters: grid -> elements -> selection overlay)
   renderer.addDrawCallback(grid.draw.bind(grid));
   renderer.addDrawCallback(elementManager.drawAll.bind(elementManager));
+  renderer.addDrawCallback(selectionManager.drawSelectionOverlay.bind(selectionManager));
 
   // --- Pan Input ---
   let isPanning = false;
@@ -48,10 +53,28 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastY = 0;
 
   canvas.addEventListener('mousedown', (event) => {
-    isPanning = true;
-    lastX = event.clientX;
-    lastY = event.clientY;
-    canvas.classList.add('panning');
+    // Get canvas-relative coordinates for hit testing
+    const canvasX = event.clientX - canvasRect.left;
+    const canvasY = event.clientY - canvasRect.top;
+
+    // Convert to world coordinates
+    const world = coordinateConverter.screenToWorld(canvasX, canvasY);
+
+    // Hit test: check if clicking on an element
+    const hitElement = elementManager.getElementAtPoint(world.x, world.y);
+
+    if (hitElement) {
+      // Click on element: select it, don't start pan
+      selectionManager.selectElement(hitElement);
+      return;
+    } else {
+      // Click on empty space: clear selection and start pan
+      selectionManager.clearSelection();
+      isPanning = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      canvas.classList.add('panning');
+    }
   });
 
   canvas.addEventListener('mousemove', (event) => {
