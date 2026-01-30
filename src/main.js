@@ -14,6 +14,8 @@ import { Viewport } from './canvas/viewport.js';
 import { Renderer } from './canvas/renderer.js';
 import { CoordinateConverter } from './grid/coordinates.js';
 import { Grid } from './grid/grid.js';
+import { ElementManager } from './managers/ElementManager.js';
+import { Sidebar } from './ui/Sidebar.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Get canvas element
@@ -30,8 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const coordinateConverter = new CoordinateConverter(viewport);
   const grid = new Grid();
 
-  // Register grid drawing
+  // Initialize element management and UI
+  const elementManager = new ElementManager();
+  const sidebarElement = document.getElementById('sidebar');
+  const sidebar = new Sidebar(sidebarElement, coordinateConverter, elementManager, grid);
+  sidebar.setupCanvasDrop(canvas);
+
+  // Register draw callbacks (order matters: grid -> elements)
   renderer.addDrawCallback(grid.draw.bind(grid));
+  renderer.addDrawCallback(elementManager.drawAll.bind(elementManager));
 
   // --- Pan Input ---
   let isPanning = false;
