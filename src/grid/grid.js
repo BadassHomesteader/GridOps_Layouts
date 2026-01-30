@@ -43,7 +43,7 @@ export class Grid {
         ctx,
         bounds,
         subSpacing,
-        'rgba(255, 255, 255, 0.06)',
+        'rgba(0, 0, 0, 0.08)',
         0.5 / viewport.scale,
         viewport
       );
@@ -54,7 +54,7 @@ export class Grid {
       ctx,
       bounds,
       this.gridSize,
-      'rgba(255, 255, 255, 0.15)',
+      'rgba(0, 0, 0, 0.15)',
       1 / viewport.scale,
       viewport
     );
@@ -107,7 +107,7 @@ export class Grid {
     const { topLeft, bottomRight } = bounds;
 
     ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.lineWidth = 2 / viewport.scale;
     ctx.beginPath();
 

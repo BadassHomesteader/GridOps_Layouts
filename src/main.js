@@ -109,12 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
       display: flex;
       gap: 8px;
       z-index: 100;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(255, 255, 255, 0.9);
       padding: 8px 12px;
       border-radius: 4px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 12px;
-      color: white;
+      color: #333;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
     `;
 
     const createButton = (text, resolution) => {
@@ -123,9 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.dataset.resolution = resolution;
       btn.style.cssText = `
         padding: 4px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.05);
+        color: #333;
         border-radius: 3px;
         cursor: pointer;
         transition: all 0.2s;
@@ -134,13 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       btn.addEventListener('mouseenter', () => {
         if (grid.resolution !== resolution) {
-          btn.style.background = 'rgba(255, 255, 255, 0.2)';
+          btn.style.background = 'rgba(0, 0, 0, 0.1)';
         }
       });
 
       btn.addEventListener('mouseleave', () => {
         if (grid.resolution !== resolution) {
-          btn.style.background = 'rgba(255, 255, 255, 0.1)';
+          btn.style.background = 'rgba(0, 0, 0, 0.05)';
         }
       });
 
@@ -159,8 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateActiveButton = () => {
       [btn1ft, btn6in].forEach(btn => {
         const isActive = btn.dataset.resolution === grid.resolution;
-        btn.style.background = isActive ? 'rgba(100, 200, 255, 0.4)' : 'rgba(255, 255, 255, 0.1)';
-        btn.style.borderColor = isActive ? 'rgba(100, 200, 255, 0.8)' : 'rgba(255, 255, 255, 0.3)';
+        btn.style.background = isActive ? 'rgba(100, 200, 255, 0.3)' : 'rgba(0, 0, 0, 0.05)';
+        btn.style.borderColor = isActive ? 'rgba(50, 150, 220, 0.8)' : 'rgba(0, 0, 0, 0.2)';
       });
     };
 
@@ -208,21 +209,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let indicatorPos;
 
     if (isShiftHeld) {
-      // Free-form mode: show at raw world position
-      indicatorPos = currentMouseWorld;
-    } else {
-      // Snap mode: show at snapped grid position
-      indicatorPos = grid.snapToGrid(currentMouseWorld.x, currentMouseWorld.y);
+      // Free-form mode: no indicator
+      return;
     }
 
+    // Snap to cell: floor to get the top-left corner of the cell the cursor is in
+    const cellX = Math.floor(currentMouseWorld.x / spacing) * spacing;
+    const cellY = Math.floor(currentMouseWorld.y / spacing) * spacing;
+
     ctx.save();
-    ctx.fillStyle = 'rgba(100, 200, 255, 0.15)';
-    ctx.fillRect(
-      indicatorPos.x - spacing / 2,
-      indicatorPos.y - spacing / 2,
-      spacing,
-      spacing
-    );
+    ctx.fillStyle = 'rgba(100, 200, 255, 0.2)';
+    ctx.fillRect(cellX, cellY, spacing, spacing);
     ctx.restore();
   };
 

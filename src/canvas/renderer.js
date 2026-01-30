@@ -62,8 +62,9 @@ export class Renderer {
     // Apply DPI scaling (CanvasSetup already scales context, but we reset it above)
     ctx.scale(dpr, dpr);
 
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
+    // Clear canvas to white
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
 
     // Apply viewport transform
     this.viewport.applyTransform(ctx);
