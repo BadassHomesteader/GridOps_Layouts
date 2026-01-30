@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** Quickly determine total pallet capacity of a warehouse layout before committing to a space.
-**Current focus:** Phase 2 COMPLETE — Drawing & Elements. Next: Phase 3
+**Current focus:** Phase 3 — Capacity & Forklift
 
 ## Current Position
 
-Phase: 2 of 4 (Drawing & Elements) — COMPLETE
-Plan: 3 of 3 in phase 2
-Status: Complete
-Last activity: 2026-01-30 — Completed 02-03-PLAN.md (Phase 2 checkpoint approved)
+Phase: 3 of 4 (Capacity & Forklift)
+Plan: 1 of 2 in phase 3
+Status: In progress
+Last activity: 2026-01-30 — Completed 03-01-PLAN.md (Capacity Counter)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 2.8 min
-- Total execution time: 0.23 hours
+- Total plans completed: 6
+- Average duration: 2.6 min
+- Total execution time: 0.26 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [█████░░░░░] 50%
 |-------|-------|-------|----------|
 | 01-foundation-canvas | 2 | 7min | 3.5min |
 | 02-drawing-elements | 3 | 7.4min | 2.5min |
+| 03-capacity-forklift | 1 | 2min | 2.0min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (5min), 02-01 (3min), 02-02 (2.4min), 02-03 (2min)
-- Trend: Accelerating
+- Last 5 plans: 02-01 (3min), 02-02 (2.4min), 02-03 (2min), 03-01 (2min)
+- Trend: Stabilizing at ~2 min/plan
 
 *Updated after each plan completion*
 
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - 3-way mouse priority: element drag > element select > pan
 - Drag offset preservation prevents element jump on drag start
 - Select + drag in one motion for unselected elements
+- Observer pattern for ElementManager notifications (add/remove/clear events)
+- CapacityManager calculates racks (levels × palletsPerLevel) + pallets (ceiling ÷ palletHeight)
+- Default ceiling height 144 inches (12 feet)
+- Capacity display positioned above Elements palette in sidebar
 
 ### Pending Todos
 
@@ -77,7 +82,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed Phase 2 (Drawing & Elements) — all 3 plans executed, checkpoint approved
+Stopped at: Completed 03-01-PLAN.md (Capacity Counter)
 Resume file: None
 
 ---
