@@ -82,37 +82,37 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GRID-01 | — | Pending |
-| GRID-02 | — | Pending |
-| GRID-03 | — | Pending |
-| GRID-04 | — | Pending |
-| GRID-05 | — | Pending |
-| GRID-06 | — | Pending |
-| DRAW-01 | — | Pending |
-| DRAW-02 | — | Pending |
-| DRAW-03 | — | Pending |
-| DRAW-04 | — | Pending |
-| DRAW-05 | — | Pending |
-| ELEM-01 | — | Pending |
-| ELEM-02 | — | Pending |
-| ELEM-03 | — | Pending |
-| ELEM-04 | — | Pending |
-| ELEM-05 | — | Pending |
-| FORK-01 | — | Pending |
-| FORK-02 | — | Pending |
-| FORK-03 | — | Pending |
-| CAP-01 | — | Pending |
-| CAP-02 | — | Pending |
-| CAP-03 | — | Pending |
-| SAVE-01 | — | Pending |
-| SAVE-02 | — | Pending |
-| SAVE-03 | — | Pending |
+| GRID-01 | Phase 1 | Pending |
+| GRID-02 | Phase 1 | Pending |
+| GRID-03 | Phase 1 | Pending |
+| GRID-04 | Phase 1 | Pending |
+| GRID-05 | Phase 1 | Pending |
+| GRID-06 | Phase 1 | Pending |
+| DRAW-01 | Phase 2 | Pending |
+| DRAW-02 | Phase 2 | Pending |
+| DRAW-03 | Phase 2 | Pending |
+| DRAW-04 | Phase 2 | Pending |
+| DRAW-05 | Phase 2 | Pending |
+| ELEM-01 | Phase 2 | Pending |
+| ELEM-02 | Phase 2 | Pending |
+| ELEM-03 | Phase 2 | Pending |
+| ELEM-04 | Phase 2 | Pending |
+| ELEM-05 | Phase 2 | Pending |
+| FORK-01 | Phase 3 | Pending |
+| FORK-02 | Phase 3 | Pending |
+| FORK-03 | Phase 3 | Pending |
+| CAP-01 | Phase 3 | Pending |
+| CAP-02 | Phase 3 | Pending |
+| CAP-03 | Phase 3 | Pending |
+| SAVE-01 | Phase 4 | Pending |
+| SAVE-02 | Phase 4 | Pending |
+| SAVE-03 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 ⚠️
+- Mapped to phases: 25
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after initial definition*
+*Last updated: 2026-01-29 after roadmap creation*
