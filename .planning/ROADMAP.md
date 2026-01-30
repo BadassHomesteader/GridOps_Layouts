@@ -12,7 +12,7 @@ GridOps Layouts delivers a browser-based warehouse capacity planning tool throug
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Canvas** - Grid system, snap-to-grid, pan/zoom viewport
+- [x] **Phase 1: Foundation & Canvas** - Grid system, snap-to-grid, pan/zoom viewport
 - [ ] **Phase 2: Drawing & Elements** - Element placement, selection, all warehouse element types
 - [ ] **Phase 3: Capacity & Forklift** - Pallet counting, forklift navigation, collision detection
 - [ ] **Phase 4: Persistence** - Cloud sync, localStorage fallback, save/load
@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Canvas scaffold, DPI scaling, viewport model, pan/zoom input, render loop
-- [ ] 01-02-PLAN.md — Grid rendering, resolution toggle (1ft/6in), snap-to-grid with Shift override
+- [x] 01-01-PLAN.md — Canvas scaffold, DPI scaling, viewport model, pan/zoom input, render loop
+- [x] 01-02-PLAN.md — Grid rendering, resolution toggle (1ft/6in), snap-to-grid with Shift override
 
 ### Phase 2: Drawing & Elements
 **Goal**: User can place, select, move, and delete all warehouse element types
@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Canvas | 0/TBD | Not started | - |
+| 1. Foundation & Canvas | 2/2 | Complete | 2026-01-30 |
 | 2. Drawing & Elements | 0/TBD | Not started | - |
 | 3. Capacity & Forklift | 0/TBD | Not started | - |
 | 4. Persistence | 0/TBD | Not started | - |
