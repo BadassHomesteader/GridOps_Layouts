@@ -19,6 +19,7 @@ import { CapacityManager } from './managers/CapacityManager.js';
 import { SelectionManager } from './interaction/Selection.js';
 import { DragMoveController } from './interaction/DragMove.js';
 import { KeyboardController } from './interaction/KeyboardInput.js';
+import { ForkliftController } from './interaction/ForkliftController.js';
 import { Sidebar } from './ui/Sidebar.js';
 import { CapacityDisplay } from './ui/CapacityDisplay.js';
 
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectionManager = new SelectionManager(elementManager);
   const dragMoveController = new DragMoveController(selectionManager, coordinateConverter, grid);
   const keyboardController = new KeyboardController(selectionManager);
+  const forkliftController = new ForkliftController(elementManager);
   const sidebarElement = document.getElementById('sidebar');
 
   // Create capacity display container and add it at the top of sidebar
@@ -53,7 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const sidebar = new Sidebar(sidebarElement, coordinateConverter, elementManager, grid);
   sidebar.setupCanvasDrop(canvas);
 
-  // Register draw callbacks (order matters: grid -> elements -> selection overlay)
+  // Register draw callbacks (order matters: forklift update -> grid -> elements -> selection overlay)
+  // Forklift update runs first to set collision state before element rendering
+  renderer.addDrawCallback((ctx, viewport, deltaTime) => {
+    forkliftController.update(deltaTime);
+  });
   renderer.addDrawCallback(grid.draw.bind(grid));
   renderer.addDrawCallback(elementManager.drawAll.bind(elementManager));
   renderer.addDrawCallback(selectionManager.drawSelectionOverlay.bind(selectionManager));
