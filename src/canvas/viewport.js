@@ -22,7 +22,7 @@ export class Viewport {
    * Call this before drawing world-space content
    */
   applyTransform(ctx) {
-    ctx.setTransform(this.scale, 0, 0, this.scale, this.offsetX, this.offsetY);
+    ctx.transform(this.scale, 0, 0, this.scale, this.offsetX, this.offsetY);
   }
 
   /**
