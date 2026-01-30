@@ -16,6 +16,7 @@ import { CoordinateConverter } from './grid/coordinates.js';
 import { Grid } from './grid/grid.js';
 import { ElementManager } from './managers/ElementManager.js';
 import { SelectionManager } from './interaction/Selection.js';
+import { DragMoveController } from './interaction/DragMove.js';
 import { KeyboardController } from './interaction/KeyboardInput.js';
 import { Sidebar } from './ui/Sidebar.js';
 
@@ -37,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize element management and UI
   const elementManager = new ElementManager();
   const selectionManager = new SelectionManager(elementManager);
+  const dragMoveController = new DragMoveController(selectionManager, coordinateConverter, grid);
   const keyboardController = new KeyboardController(selectionManager);
   const sidebarElement = document.getElementById('sidebar');
   const sidebar = new Sidebar(sidebarElement, coordinateConverter, elementManager, grid);
@@ -60,41 +62,74 @@ document.addEventListener('DOMContentLoaded', () => {
     // Convert to world coordinates
     const world = coordinateConverter.screenToWorld(canvasX, canvasY);
 
-    // Hit test: check if clicking on an element
-    const hitElement = elementManager.getElementAtPoint(world.x, world.y);
-
-    if (hitElement) {
-      // Click on element: select it, don't start pan
-      selectionManager.selectElement(hitElement);
+    // Priority 1: Check if clicking on currently selected element (start drag-move)
+    const selected = selectionManager.getSelected();
+    if (selected && selected.containsPoint(world.x, world.y)) {
+      dragMoveController.startDrag(world.x, world.y);
+      canvas.style.cursor = 'move';
       return;
-    } else {
-      // Click on empty space: clear selection and start pan
-      selectionManager.clearSelection();
-      isPanning = true;
-      lastX = event.clientX;
-      lastY = event.clientY;
-      canvas.classList.add('panning');
     }
+
+    // Priority 2: Check if clicking on any element (select it and start drag)
+    const hitElement = elementManager.getElementAtPoint(world.x, world.y);
+    if (hitElement) {
+      selectionManager.selectElement(hitElement);
+      // Also start drag immediately (select + drag in one motion)
+      dragMoveController.startDrag(world.x, world.y);
+      canvas.style.cursor = 'move';
+      return;
+    }
+
+    // Priority 3: Empty canvas -- clear selection and start pan
+    selectionManager.clearSelection();
+    isPanning = true;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    canvas.classList.add('panning');
   });
 
   canvas.addEventListener('mousemove', (event) => {
-    if (!isPanning) return;
+    const canvasX = event.clientX - canvasRect.left;
+    const canvasY = event.clientY - canvasRect.top;
 
-    const deltaX = event.clientX - lastX;
-    const deltaY = event.clientY - lastY;
+    // Element drag takes priority
+    if (dragMoveController.getIsDragging()) {
+      const world = coordinateConverter.screenToWorld(canvasX, canvasY);
+      dragMoveController.updateDrag(world.x, world.y, event.shiftKey);
+      return;
+    }
 
-    viewport.pan(deltaX, deltaY);
+    // Pan handling
+    if (isPanning) {
+      const deltaX = event.clientX - lastX;
+      const deltaY = event.clientY - lastY;
+      viewport.pan(deltaX, deltaY);
+      lastX = event.clientX;
+      lastY = event.clientY;
+      return;
+    }
 
-    lastX = event.clientX;
-    lastY = event.clientY;
+    // Hover: update cursor and snap indicator
+    currentMouseWorld = coordinateConverter.screenToWorld(canvasX, canvasY);
+    const hoverElement = elementManager.getElementAtPoint(currentMouseWorld.x, currentMouseWorld.y);
+    canvas.style.cursor = hoverElement ? 'pointer' : 'default';
   });
 
   canvas.addEventListener('mouseup', () => {
+    if (dragMoveController.getIsDragging()) {
+      dragMoveController.endDrag();
+      canvas.style.cursor = 'default';
+      return;
+    }
     isPanning = false;
     canvas.classList.remove('panning');
   });
 
   canvas.addEventListener('mouseleave', () => {
+    if (dragMoveController.getIsDragging()) {
+      dragMoveController.endDrag();
+      canvas.style.cursor = 'default';
+    }
     isPanning = false;
     canvas.classList.remove('panning');
   });
@@ -223,15 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Track mouse position in world coordinates
-  canvas.addEventListener('mousemove', (event) => {
-    // Only update if not panning (reuse existing isPanning check)
-    if (!isPanning) {
-      const canvasX = event.clientX - canvasRect.left;
-      const canvasY = event.clientY - canvasRect.top;
-      currentMouseWorld = coordinateConverter.screenToWorld(canvasX, canvasY);
-    }
-  });
+  // Note: mouse position tracking now handled in main mousemove handler above
 
   // Draw snap indicator
   const drawSnapIndicator = (ctx, viewport, deltaTime) => {
