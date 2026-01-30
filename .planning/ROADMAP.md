@@ -29,10 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can zoom in/out with scroll wheel centered on cursor
   4. Grid displays crisp and aligned on high-DPI displays (no blurriness)
   5. Snap-to-grid works by default with modifier key override for free-form placement
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD during phase planning
+- [ ] 01-01-PLAN.md — Canvas scaffold, DPI scaling, viewport model, pan/zoom input, render loop
+- [ ] 01-02-PLAN.md — Grid rendering, resolution toggle (1ft/6in), snap-to-grid with Shift override
 
 ### Phase 2: Drawing & Elements
 **Goal**: User can place, select, move, and delete all warehouse element types
