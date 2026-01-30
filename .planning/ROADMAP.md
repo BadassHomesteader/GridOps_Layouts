@@ -13,7 +13,7 @@ GridOps Layouts delivers a browser-based warehouse capacity planning tool throug
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Canvas** - Grid system, snap-to-grid, pan/zoom viewport
-- [ ] **Phase 2: Drawing & Elements** - Element placement, selection, all warehouse element types
+- [x] **Phase 2: Drawing & Elements** - Element placement, selection, all warehouse element types
 - [ ] **Phase 3: Capacity & Forklift** - Pallet counting, forklift navigation, collision detection
 - [ ] **Phase 4: Persistence** - Cloud sync, localStorage fallback, save/load
 
@@ -49,9 +49,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Element base class, 5 warehouse subclasses, ElementManager
-- [ ] 02-02-PLAN.md — Sidebar palette, drag-to-canvas, selection, keyboard shortcuts
-- [ ] 02-03-PLAN.md — Drag-to-move, mouse event priority, end-to-end verification
+- [x] 02-01-PLAN.md — Element base class, 5 warehouse subclasses, ElementManager
+- [x] 02-02-PLAN.md — Sidebar palette, drag-to-canvas, selection, keyboard shortcuts
+- [x] 02-03-PLAN.md — Drag-to-move, mouse event priority, end-to-end verification
 
 ### Phase 3: Capacity & Forklift
 **Goal**: User can calculate total warehouse pallet capacity and test aisle accessibility interactively
@@ -90,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Canvas | 2/2 | Complete | 2026-01-30 |
-| 2. Drawing & Elements | 0/3 | In Progress | - |
+| 2. Drawing & Elements | 3/3 | Complete | 2026-01-30 |
 | 3. Capacity & Forklift | 0/TBD | Not started | - |
 | 4. Persistence | 0/TBD | Not started | - |
 

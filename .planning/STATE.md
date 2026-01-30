@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** Quickly determine total pallet capacity of a warehouse layout before committing to a space.
-**Current focus:** Phase 2 in progress — Drawing & Elements
+**Current focus:** Phase 2 COMPLETE — Drawing & Elements. Next: Phase 3
 
 ## Current Position
 
-Phase: 2 of 4 (Drawing & Elements)
-Plan: 2 of 4 in phase 2
-Status: In progress
-Last activity: 2026-01-30 — Completed 02-02-PLAN.md
+Phase: 2 of 4 (Drawing & Elements) — COMPLETE
+Plan: 3 of 3 in phase 2
+Status: Complete
+Last activity: 2026-01-30 — Completed 02-03-PLAN.md (Phase 2 checkpoint approved)
 
-Progress: [█████░░░░░] 44%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 3.0 min
-- Total execution time: 0.20 hours
+- Total plans completed: 5
+- Average duration: 2.8 min
+- Total execution time: 0.23 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-canvas | 2 | 7min | 3.5min |
-| 02-drawing-elements | 2 | 5.4min | 2.7min |
+| 02-drawing-elements | 3 | 7.4min | 2.5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2min), 01-02 (5min), 02-01 (3min), 02-02 (2.4min)
+- Last 5 plans: 01-02 (5min), 02-01 (3min), 02-02 (2.4min), 02-03 (2min)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -62,6 +62,9 @@ Recent decisions affecting current work:
 - Hit-testing prioritized over panning (click element selects, click empty pans)
 - Selection overlay with corner resize handles (visual only, no behavior yet)
 - Draw callback order: grid → elements → selection overlay
+- 3-way mouse priority: element drag > element select > pan
+- Drag offset preservation prevents element jump on drag start
+- Select + drag in one motion for unselected elements
 
 ### Pending Todos
 
@@ -74,7 +77,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 02-02-PLAN.md (Interactive placement & selection)
+Stopped at: Completed Phase 2 (Drawing & Elements) — all 3 plans executed, checkpoint approved
 Resume file: None
 
 ---
