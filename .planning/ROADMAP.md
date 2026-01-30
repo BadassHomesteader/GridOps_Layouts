@@ -63,10 +63,12 @@ Plans:
   3. User can drive forklift with arrow keys to test aisle navigation
   4. Forklift stops when colliding with walls, obstacles, or racks (cannot drive through)
   5. User receives visual feedback when forklift is blocked (collision highlight)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] TBD during phase planning
+- [ ] 03-01-PLAN.md — Capacity counter, ceiling height, ElementManager observer hooks
+- [ ] 03-02-PLAN.md — Forklift arrow-key driving, AABB collision, visual feedback
+- [ ] 03-03-PLAN.md — End-to-end verification checkpoint
 
 ### Phase 4: Persistence
 **Goal**: User can save layouts to cloud and reload them across sessions and devices
@@ -91,7 +93,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation & Canvas | 2/2 | Complete | 2026-01-30 |
 | 2. Drawing & Elements | 3/3 | Complete | 2026-01-30 |
-| 3. Capacity & Forklift | 0/TBD | Not started | - |
+| 3. Capacity & Forklift | 0/3 | Not started | - |
 | 4. Persistence | 0/TBD | Not started | - |
 
 ---
