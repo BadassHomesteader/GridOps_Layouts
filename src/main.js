@@ -15,10 +15,12 @@ import { Renderer } from './canvas/renderer.js';
 import { CoordinateConverter } from './grid/coordinates.js';
 import { Grid } from './grid/grid.js';
 import { ElementManager } from './managers/ElementManager.js';
+import { CapacityManager } from './managers/CapacityManager.js';
 import { SelectionManager } from './interaction/Selection.js';
 import { DragMoveController } from './interaction/DragMove.js';
 import { KeyboardController } from './interaction/KeyboardInput.js';
 import { Sidebar } from './ui/Sidebar.js';
+import { CapacityDisplay } from './ui/CapacityDisplay.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Get canvas element
@@ -37,10 +39,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize element management and UI
   const elementManager = new ElementManager();
+  const capacityManager = new CapacityManager(elementManager);
   const selectionManager = new SelectionManager(elementManager);
   const dragMoveController = new DragMoveController(selectionManager, coordinateConverter, grid);
   const keyboardController = new KeyboardController(selectionManager);
   const sidebarElement = document.getElementById('sidebar');
+
+  // Create capacity display container and add it at the top of sidebar
+  const capacityContainer = document.createElement('div');
+  sidebarElement.insertBefore(capacityContainer, sidebarElement.firstChild);
+  const capacityDisplay = new CapacityDisplay(capacityManager, capacityContainer);
+
   const sidebar = new Sidebar(sidebarElement, coordinateConverter, elementManager, grid);
   sidebar.setupCanvasDrop(canvas);
 
