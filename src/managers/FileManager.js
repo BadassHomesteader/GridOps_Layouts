@@ -19,6 +19,7 @@ export class FileManager {
     this.capacityManager = capacityManager;
     this.selectionManager = selectionManager;
     this.capacityDisplay = capacityDisplay;
+    this.onLoad = null; // callback after file load (e.g. zoom-to-fit)
   }
 
   /**
@@ -81,6 +82,9 @@ export class FileManager {
         this.elementManager.add(element);
       }
     }
+
+    // Trigger post-load callback (e.g. zoom-to-fit)
+    if (this.onLoad) this.onLoad();
   }
 
   /**

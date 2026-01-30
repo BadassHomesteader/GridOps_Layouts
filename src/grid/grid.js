@@ -10,7 +10,7 @@
 export class Grid {
   constructor() {
     this.gridSize = 48; // pixels per foot in world space
-    this.resolution = '1ft'; // '1ft', '6in', or '1in'
+    this.resolution = '1in'; // '1ft', '6in', or '1in'
     this.snapEnabled = true;
   }
 

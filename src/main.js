@@ -400,7 +400,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   createResolutionToggle();
 
-  // --- Zoom-to-Fit Button ---
+  // --- Zoom-to-Fit ---
+  const zoomToFit = () => {
+    const elements = elementManager.getAll();
+    if (elements.length === 0) return;
+
+    // Compute bounding box of all elements
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const el of elements) {
+      const b = el.getBounds();
+      if (b.x < minX) minX = b.x;
+      if (b.y < minY) minY = b.y;
+      if (b.x + b.width > maxX) maxX = b.x + b.width;
+      if (b.y + b.height > maxY) maxY = b.y + b.height;
+    }
+
+    const worldW = maxX - minX;
+    const worldH = maxY - minY;
+    if (worldW <= 0 || worldH <= 0) return;
+
+    const { width: canvasW, height: canvasH } = canvasSetup.getLogicalSize();
+    const padding = 0.1;
+    const availW = canvasW * (1 - 2 * padding);
+    const availH = canvasH * (1 - 2 * padding);
+    const newScale = Math.min(availW / worldW, availH / worldH);
+    const clampedScale = Math.max(Viewport.MIN_SCALE, Math.min(Viewport.MAX_SCALE, newScale));
+    const centerWorldX = minX + worldW / 2;
+    const centerWorldY = minY + worldH / 2;
+
+    viewport.scale = clampedScale;
+    viewport.offsetX = canvasW / 2 - centerWorldX * clampedScale;
+    viewport.offsetY = canvasH / 2 - centerWorldY * clampedScale;
+  };
+
+  // Zoom-to-fit after file open
+  fileManager.onLoad = zoomToFit;
+
   const createZoomToFitButton = () => {
     const container = document.createElement('div');
     container.id = 'zoom-fit-control';
@@ -435,43 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btn.addEventListener('click', (event) => {
       event.stopPropagation();
-
-      const elements = elementManager.getAll();
-      if (elements.length === 0) return;
-
-      // Compute bounding box of all elements
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (const el of elements) {
-        const b = el.getBounds();
-        if (b.x < minX) minX = b.x;
-        if (b.y < minY) minY = b.y;
-        if (b.x + b.width > maxX) maxX = b.x + b.width;
-        if (b.y + b.height > maxY) maxY = b.y + b.height;
-      }
-
-      const worldW = maxX - minX;
-      const worldH = maxY - minY;
-      if (worldW <= 0 || worldH <= 0) return;
-
-      // Get canvas logical size
-      const { width: canvasW, height: canvasH } = canvasSetup.getLogicalSize();
-
-      // Add padding (10% each side)
-      const padding = 0.1;
-      const availW = canvasW * (1 - 2 * padding);
-      const availH = canvasH * (1 - 2 * padding);
-
-      // Scale to fit
-      const newScale = Math.min(availW / worldW, availH / worldH);
-      const clampedScale = Math.max(Viewport.MIN_SCALE, Math.min(Viewport.MAX_SCALE, newScale));
-
-      // Center the bounding box
-      const centerWorldX = minX + worldW / 2;
-      const centerWorldY = minY + worldH / 2;
-
-      viewport.scale = clampedScale;
-      viewport.offsetX = canvasW / 2 - centerWorldX * clampedScale;
-      viewport.offsetY = canvasH / 2 - centerWorldY * clampedScale;
+      zoomToFit();
     });
 
     container.appendChild(btn);

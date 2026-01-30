@@ -95,14 +95,14 @@ export class DimensionInput {
     // Width input (convert px to inches, then to display unit)
     const widthInches = element.width / 4;
     const widthDisplay = UnitManager.toDisplay(widthInches);
-    const widthRow = this.createInputRow('Width:', this.roundDisplay(widthDisplay), UnitManager.getLabel());
+    const widthRow = this.createInputRow('X:', this.roundDisplay(widthDisplay), UnitManager.getLabel());
     widthRow.input.step = UnitManager.mode === 'feet' ? 0.1 : 1;
     this.overlay.appendChild(widthRow.row);
 
     // Height input
     const heightInches = element.height / 4;
     const heightDisplay = UnitManager.toDisplay(heightInches);
-    const heightRow = this.createInputRow('Height:', this.roundDisplay(heightDisplay), UnitManager.getLabel());
+    const heightRow = this.createInputRow('Y:', this.roundDisplay(heightDisplay), UnitManager.getLabel());
     heightRow.input.step = UnitManager.mode === 'feet' ? 0.1 : 1;
     this.overlay.appendChild(heightRow.row);
 
@@ -122,47 +122,49 @@ export class DimensionInput {
       this.overlay.appendChild(labelRow.row);
     }
 
-    // Color picker for offices
+    // Color picker for offices (Excel-style theme grid)
     let selectedColorIndex = null;
     if (element.type === 'office') {
       selectedColorIndex = element.colorIndex || 0;
-      const colorRow = document.createElement('div');
-      colorRow.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-bottom: 6px;
-      `;
-      const colorLabel = document.createElement('span');
-      colorLabel.textContent = 'Color:';
-      colorLabel.style.cssText = `width: 45px;`;
-      colorRow.appendChild(colorLabel);
+      const colorSection = document.createElement('div');
+      colorSection.style.cssText = `margin-bottom: 6px;`;
 
+      const colorLabel = document.createElement('div');
+      colorLabel.textContent = 'Color:';
+      colorLabel.style.cssText = `margin-bottom: 4px;`;
+      colorSection.appendChild(colorLabel);
+
+      const cols = Office.GRID_COLS;
       const swatchContainer = document.createElement('div');
-      swatchContainer.style.cssText = `display: flex; gap: 4px;`;
+      swatchContainer.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(${cols}, 18px);
+        gap: 2px;
+      `;
 
       Office.COLORS.forEach((color, idx) => {
         const swatch = document.createElement('div');
         swatch.style.cssText = `
-          width: 20px; height: 20px;
+          width: 18px; height: 18px;
           background: ${color.fill};
-          border: 2px solid ${idx === selectedColorIndex ? '#333' : 'transparent'};
-          border-radius: 3px;
+          border: 2px solid ${idx === selectedColorIndex ? '#333' : color.fill === '#ffffff' ? '#ccc' : 'transparent'};
+          border-radius: 2px;
           cursor: pointer;
+          box-sizing: border-box;
         `;
         swatch.title = color.name;
         swatch.addEventListener('click', () => {
           selectedColorIndex = idx;
-          // Update all swatch borders
           swatchContainer.querySelectorAll('div').forEach((s, i) => {
-            s.style.borderColor = i === idx ? '#333' : 'transparent';
+            const c = Office.COLORS[i];
+            s.style.borderColor = i === idx ? '#333' : (c.fill === '#ffffff' ? '#ccc' : 'transparent');
           });
         });
         swatchContainer.appendChild(swatch);
       });
 
-      colorRow.appendChild(swatchContainer);
-      this.overlay.appendChild(colorRow);
+      colorSection.appendChild(swatchContainer);
+      this.overlay.appendChild(colorSection);
     }
 
     // Drive-through checkbox for offices

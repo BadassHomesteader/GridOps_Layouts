@@ -2,21 +2,79 @@
  * Office - Office/obstacle element
  *
  * Default: 480x480 (10ft x 10ft)
- * Color: Selectable from predefined palette
+ * Color: Selectable from Excel-style theme palette
  * Purpose: Office space, obstacles, non-storage areas
  */
 import { Element } from './Element.js';
 
-export class Office extends Element {
-  // Predefined color options
-  static COLORS = [
-    { name: 'Tan',    fill: '#c4a882', stroke: '#8b7355', selectedFill: '#a68860', selectedStroke: '#6b5333' },
-    { name: 'Blue',   fill: '#82a8c4', stroke: '#55738b', selectedFill: '#6088a6', selectedStroke: '#33536b' },
-    { name: 'Green',  fill: '#8bc4a0', stroke: '#5a8b6e', selectedFill: '#6aa680', selectedStroke: '#3a6b4e' },
-    { name: 'Red',    fill: '#c4888a', stroke: '#8b5557', selectedFill: '#a66668', selectedStroke: '#6b3335' },
-    { name: 'Purple', fill: '#a888c4', stroke: '#73558b', selectedFill: '#8866a6', selectedStroke: '#53336b' },
-    { name: 'Gray',   fill: '#a0a0a0', stroke: '#707070', selectedFill: '#888888', selectedStroke: '#505050' },
+// --- Color palette generation (Excel-style theme colors) ---
+function parseHex(hex) {
+  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+}
+
+function toHex(r, g, b) {
+  return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+}
+
+function tintColor(hex, factor) {
+  const [r, g, b] = parseHex(hex);
+  return toHex(r + (255 - r) * factor, g + (255 - g) * factor, b + (255 - b) * factor);
+}
+
+function shadeColor(hex, factor) {
+  const [r, g, b] = parseHex(hex);
+  return toHex(r * (1 - factor), g * (1 - factor), b * (1 - factor));
+}
+
+function colorEntry(name, hex) {
+  return {
+    name,
+    fill: hex,
+    stroke: shadeColor(hex, 0.3),
+    selectedFill: shadeColor(hex, 0.15),
+    selectedStroke: shadeColor(hex, 0.45)
+  };
+}
+
+function buildPalette() {
+  const bases = [
+    { name: 'White',  hex: '#ffffff' },
+    { name: 'Black',  hex: '#333333' },
+    { name: 'Silver', hex: '#e7e6e6' },
+    { name: 'Navy',   hex: '#44546a' },
+    { name: 'Blue',   hex: '#4472c4' },
+    { name: 'Orange', hex: '#ed7d31' },
+    { name: 'Gray',   hex: '#a5a5a5' },
+    { name: 'Gold',   hex: '#ffc000' },
+    { name: 'Sky',    hex: '#5b9bd5' },
+    { name: 'Green',  hex: '#70ad47' },
   ];
+
+  // Row 0: base, Rows 1-3: lighter tints, Rows 4-5: darker shades
+  const rows = [
+    { suffix: '',           tint: 0,    shade: 0    },
+    { suffix: ' Lighter',   tint: 0.8,  shade: 0    },
+    { suffix: ' Light',     tint: 0.6,  shade: 0    },
+    { suffix: ' Medium',    tint: 0.4,  shade: 0    },
+    { suffix: ' Dark',      tint: 0,    shade: 0.25 },
+    { suffix: ' Darker',    tint: 0,    shade: 0.5  },
+  ];
+
+  const colors = [];
+  for (const row of rows) {
+    for (const base of bases) {
+      let hex = base.hex;
+      if (row.tint > 0) hex = tintColor(hex, row.tint);
+      else if (row.shade > 0) hex = shadeColor(hex, row.shade);
+      colors.push(colorEntry(base.name + row.suffix, hex));
+    }
+  }
+  return colors;
+}
+
+export class Office extends Element {
+  static GRID_COLS = 10;
+  static COLORS = buildPalette();
 
   constructor(x = 0, y = 0, width = 480, height = 480) {
     super(x, y, width, height, 'office');
