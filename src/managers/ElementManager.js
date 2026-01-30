@@ -11,6 +11,26 @@
 export class ElementManager {
   constructor() {
     this.elements = [];
+    this.observers = [];
+  }
+
+  /**
+   * Subscribe to element changes
+   * @param {Function} callback - callback to invoke on changes (event, element)
+   */
+  subscribe(callback) {
+    this.observers.push(callback);
+  }
+
+  /**
+   * Notify all observers of element change
+   * @param {string} event - event type ('add', 'remove', 'clear')
+   * @param {Element|null} element - affected element (null for 'clear')
+   */
+  notify(event, element) {
+    for (const observer of this.observers) {
+      observer(event, element);
+    }
   }
 
   /**
@@ -19,6 +39,7 @@ export class ElementManager {
    */
   add(element) {
     this.elements.push(element);
+    this.notify('add', element);
   }
 
   /**
@@ -29,6 +50,7 @@ export class ElementManager {
     const index = this.elements.indexOf(element);
     if (index !== -1) {
       this.elements.splice(index, 1);
+      this.notify('remove', element);
     }
   }
 
@@ -77,5 +99,6 @@ export class ElementManager {
    */
   clear() {
     this.elements = [];
+    this.notify('clear', null);
   }
 }
