@@ -2,31 +2,70 @@
  * SelectionManager - Element selection state and visual feedback
  *
  * Provides:
- * - Single element selection tracking
- * - Selection state management (select/clear)
+ * - Single and multi-element selection tracking
+ * - Shift+click to toggle individual elements
+ * - Box/rubber-band selection support
  * - Visual selection overlay with dashed border
- * - Delete selected element
+ * - Delete selected elements
  */
 export class SelectionManager {
   constructor(elementManager) {
     this.elementManager = elementManager;
-    this.selectedElement = null;
+    this.selectedElements = [];
   }
 
   /**
-   * Select an element
+   * Select a single element (clears previous selection)
    * @param {Element|null} element - Element to select, or null to clear
    */
   selectElement(element) {
-    // Clear previous selection
-    if (this.selectedElement) {
-      this.selectedElement.selected = false;
+    // Clear all previous selections
+    for (const el of this.selectedElements) {
+      el.selected = false;
     }
+    this.selectedElements = [];
 
-    // Set new selection
-    this.selectedElement = element;
     if (element) {
       element.selected = true;
+      this.selectedElements.push(element);
+    }
+  }
+
+  /**
+   * Toggle element in selection (for Shift+click)
+   * @param {Element} element - Element to toggle
+   */
+  toggleElement(element) {
+    const index = this.selectedElements.indexOf(element);
+    if (index >= 0) {
+      // Deselect
+      element.selected = false;
+      this.selectedElements.splice(index, 1);
+    } else {
+      // Add to selection
+      element.selected = true;
+      this.selectedElements.push(element);
+    }
+  }
+
+  /**
+   * Select multiple elements (for box selection)
+   * @param {Element[]} elements - Elements to select
+   * @param {boolean} additive - If true, add to existing selection
+   */
+  selectMultiple(elements, additive = false) {
+    if (!additive) {
+      for (const el of this.selectedElements) {
+        el.selected = false;
+      }
+      this.selectedElements = [];
+    }
+
+    for (const el of elements) {
+      if (!this.selectedElements.includes(el)) {
+        el.selected = true;
+        this.selectedElements.push(el);
+      }
     }
   }
 
@@ -38,75 +77,66 @@ export class SelectionManager {
   }
 
   /**
-   * Get currently selected element
+   * Get currently selected element (first selected, for backward compat)
    */
   getSelected() {
-    return this.selectedElement;
+    return this.selectedElements.length > 0 ? this.selectedElements[0] : null;
   }
 
   /**
-   * Delete currently selected element
+   * Get all selected elements
+   */
+  getSelectedAll() {
+    return this.selectedElements;
+  }
+
+  /**
+   * Check if an element is selected
+   */
+  isSelected(element) {
+    return this.selectedElements.includes(element);
+  }
+
+  /**
+   * Delete all selected elements
    */
   deleteSelected() {
-    if (this.selectedElement) {
-      this.elementManager.remove(this.selectedElement);
-      this.selectedElement = null;
+    for (const el of this.selectedElements) {
+      this.elementManager.remove(el);
     }
+    this.selectedElements = [];
   }
 
   /**
-   * Draw selection overlay (renderer callback signature)
+   * Get elements within a rectangular region (for box selection)
+   */
+  getElementsInRegion(x1, y1, x2, y2) {
+    const minX = Math.min(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxX = Math.max(x1, x2);
+    const maxY = Math.max(y1, y2);
+
+    return this.elementManager.getAll().filter(el => {
+      const b = el.getBounds();
+      return !(b.x + b.width < minX || b.x > maxX || b.y + b.height < minY || b.y > maxY);
+    });
+  }
+
+  /**
+   * Draw selection overlay for all selected elements (renderer callback signature)
    */
   drawSelectionOverlay(ctx, viewport, deltaTime) {
-    if (!this.selectedElement) return;
-
-    const element = this.selectedElement;
-    const bounds = element.getBounds();
+    if (this.selectedElements.length === 0) return;
 
     ctx.save();
-
-    // Dashed blue border
     ctx.strokeStyle = 'rgba(100, 200, 255, 1)';
     ctx.lineWidth = 3 / viewport.scale;
     ctx.setLineDash([6 / viewport.scale, 4 / viewport.scale]);
-    ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
-    // Draw corner resize handles
-    const handleSize = 8 / viewport.scale;
-    ctx.fillStyle = 'rgba(100, 200, 255, 1)';
-    ctx.setLineDash([]); // Solid for handles
-
-    // Top-left
-    ctx.fillRect(
-      bounds.x - handleSize / 2,
-      bounds.y - handleSize / 2,
-      handleSize,
-      handleSize
-    );
-
-    // Top-right
-    ctx.fillRect(
-      bounds.x + bounds.width - handleSize / 2,
-      bounds.y - handleSize / 2,
-      handleSize,
-      handleSize
-    );
-
-    // Bottom-left
-    ctx.fillRect(
-      bounds.x - handleSize / 2,
-      bounds.y + bounds.height - handleSize / 2,
-      handleSize,
-      handleSize
-    );
-
-    // Bottom-right
-    ctx.fillRect(
-      bounds.x + bounds.width - handleSize / 2,
-      bounds.y + bounds.height - handleSize / 2,
-      handleSize,
-      handleSize
-    );
+    for (const element of this.selectedElements) {
+      const bounds = element.getBounds();
+      ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+    }
 
     ctx.restore();
   }

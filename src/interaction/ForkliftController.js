@@ -3,16 +3,17 @@
  *
  * Provides:
  * - Arrow key movement with delta-time smoothness
- * - AABB collision detection (stops at walls, offices, racks)
- * - Drives over pallets (no collision)
+ * - AABB collision detection (stops at walls, offices, pallets)
+ * - R key to rotate forklift 90 degrees
  * - Visual feedback (red when blocked, red outline on blocking element)
  * - Normalized diagonal movement (no speed boost)
  * - Separate X/Y collision testing (slide along obstacles)
  */
 export class ForkliftController {
-  constructor(elementManager) {
+  constructor(elementManager, selectionManager) {
     this.elementManager = elementManager;
-    this.forklift = null; // Set dynamically - finds first forklift in elements
+    this.selectionManager = selectionManager;
+    this.forklift = null; // Only drives when a forklift is selected
     this.keys = {
       ArrowUp: false,
       ArrowDown: false,
@@ -32,6 +33,10 @@ export class ForkliftController {
       if (e.key in this.keys && !this.isTextInputActive(e.target)) {
         e.preventDefault(); // Prevent page scroll
         this.keys[e.key] = true;
+      }
+      // R key to rotate forklift (only when forklift is selected)
+      if ((e.key === 'r' || e.key === 'R') && !this.isTextInputActive(e.target) && this.forklift) {
+        this.rotateForklift();
       }
     });
 
@@ -63,13 +68,22 @@ export class ForkliftController {
   }
 
   /**
+   * Rotate forklift by 45-degree increments
+   */
+  rotateForklift() {
+    if (!this.forklift) return;
+    this.forklift.rotation = (this.forklift.rotation + 45) % 360;
+  }
+
+  /**
    * Update forklift position based on arrow key state
    * Called every frame from render loop
    * @param {number} deltaTime - milliseconds since last frame
    */
   update(deltaTime) {
-    // Find forklift (dynamic - user can add/remove forklifts)
-    this.forklift = this.elementManager.getAll().find(el => el.type === 'forklift') || null;
+    // Only drive when a forklift is selected
+    const selected = this.selectionManager.getSelected();
+    this.forklift = (selected && selected.type === 'forklift') ? selected : null;
 
     if (!this.forklift) {
       this.active = false;
@@ -140,6 +154,7 @@ export class ForkliftController {
   /**
    * Check for collision with other elements
    * Uses AABB (Axis-Aligned Bounding Box) collision detection
+   * PerimeterWall: checks 4 wall segments individually so forklift can drive inside
    * @returns {Element|null} Colliding element or null
    */
   checkCollision() {
@@ -149,10 +164,18 @@ export class ForkliftController {
       // Skip self
       if (element === this.forklift) continue;
 
-      // Skip pallets (forklift drives over pallets)
-      if (element.type === 'pallet') continue;
+      // Skip drive-through offices (visual zones only)
+      if (element.type === 'office' && element.driveThrough) continue;
 
-      // AABB collision check
+      // PerimeterWall: test against 4 wall segments, not outer AABB
+      if (element.type === 'perimeterWall') {
+        if (this.checkPerimeterCollision(fb, element)) {
+          return element;
+        }
+        continue;
+      }
+
+      // All other elements: standard AABB collision
       const eb = element.getBounds();
       if (
         fb.x < eb.x + eb.width &&
@@ -165,5 +188,38 @@ export class ForkliftController {
     }
 
     return null; // No collision
+  }
+
+  /**
+   * Check collision against the 4 wall segments of a PerimeterWall
+   * @returns {boolean} true if collision with any wall segment
+   */
+  checkPerimeterCollision(fb, perimeterWall) {
+    const t = perimeterWall.wallThickness;
+    const px = perimeterWall.x;
+    const py = perimeterWall.y;
+    const pw = perimeterWall.width;
+    const ph = perimeterWall.height;
+
+    // 4 wall segment AABBs: top, bottom, left, right
+    const segments = [
+      { x: px, y: py, width: pw, height: t },                         // top
+      { x: px, y: py + ph - t, width: pw, height: t },                // bottom
+      { x: px, y: py + t, width: t, height: ph - 2 * t },             // left
+      { x: px + pw - t, y: py + t, width: t, height: ph - 2 * t }     // right
+    ];
+
+    for (const seg of segments) {
+      if (
+        fb.x < seg.x + seg.width &&
+        fb.x + fb.width > seg.x &&
+        fb.y < seg.y + seg.height &&
+        fb.y + fb.height > seg.y
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

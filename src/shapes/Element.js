@@ -48,6 +48,16 @@ export class Element {
   }
 
   /**
+   * Set element size
+   * @param {number} width - new width in world coordinates
+   * @param {number} height - new height in world coordinates
+   */
+  setSize(width, height) {
+    this.width = width;
+    this.height = height;
+  }
+
+  /**
    * Draw element (base implementation)
    * Override in subclasses for custom rendering
    */

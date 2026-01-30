@@ -3,10 +3,12 @@
  *
  * Provides:
  * - Real-time total pallet count display
- * - Ceiling height configuration input
- * - Feet/inches conversion display
+ * - Global pallet dimension configuration (width, height)
  * - Automatic updates via CapacityManager subscription
  */
+import { Pallet } from '../shapes/Pallet.js';
+import { UnitManager } from '../managers/UnitManager.js';
+
 export class CapacityDisplay {
   constructor(capacityManager, containerElement) {
     this.capacityManager = capacityManager;
@@ -14,6 +16,22 @@ export class CapacityDisplay {
 
     this.createUI();
     this.setupSubscriptions();
+  }
+
+  /**
+   * Get property address value
+   */
+  getAddress() {
+    return this.addressInput ? this.addressInput.value : '';
+  }
+
+  /**
+   * Set property address value
+   */
+  setAddress(address) {
+    if (this.addressInput) {
+      this.addressInput.value = address;
+    }
   }
 
   /**
@@ -28,7 +46,37 @@ export class CapacityDisplay {
       border-bottom: 1px solid #ddd;
     `;
 
-    // Title
+    // Property address section
+    const addressLabel = document.createElement('div');
+    addressLabel.textContent = 'Property Address';
+    addressLabel.style.cssText = `
+      font-weight: bold;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 6px;
+    `;
+
+    this.addressInput = document.createElement('input');
+    this.addressInput.type = 'text';
+    this.addressInput.placeholder = 'Enter address...';
+    this.addressInput.style.cssText = `
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      color: #333;
+      margin-bottom: 14px;
+      box-sizing: border-box;
+    `;
+
+    // Sync address input to capacityManager
+    this.addressInput.addEventListener('input', () => {
+      this.capacityManager.propertyAddress = this.addressInput.value;
+    });
+
+    // Capacity title
     const title = document.createElement('div');
     title.textContent = 'Capacity';
     title.style.cssText = `
@@ -67,7 +115,8 @@ export class CapacityDisplay {
     ceilingRow.style.cssText = `
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      margin-bottom: 4px;
       font-size: 12px;
       color: #333;
     `;
@@ -77,12 +126,13 @@ export class CapacityDisplay {
 
     this.ceilingInput = document.createElement('input');
     this.ceilingInput.type = 'number';
-    this.ceilingInput.value = this.capacityManager.getCeilingHeight();
-    this.ceilingInput.min = 48;
-    this.ceilingInput.step = 12;
+    this.ceilingInput.value = '';
+    this.ceilingInput.placeholder = 'ft';
+    this.ceilingInput.min = 0;
+    this.ceilingInput.step = 1;
     this.ceilingInput.style.cssText = `
-      width: 60px;
-      padding: 4px 6px;
+      width: 50px;
+      padding: 3px 5px;
       border: 1px solid #ccc;
       border-radius: 3px;
       font-family: inherit;
@@ -90,27 +140,45 @@ export class CapacityDisplay {
       color: #333;
     `;
 
-    const inchesLabel = document.createElement('span');
-    inchesLabel.textContent = 'in';
+    this.ceilingUnitSpan = document.createElement('span');
+    this.ceilingUnitSpan.textContent = UnitManager.getLabel();
 
-    this.feetLabel = document.createElement('span');
-    this.feetLabel.style.cssText = `
-      color: #666;
-      font-size: 11px;
-    `;
-    this.updateFeetLabel();
+    this.ceilingInput.addEventListener('input', () => {
+      const val = parseFloat(this.ceilingInput.value);
+      // Convert display value to inches for storage
+      const inches = (!isNaN(val) && val > 0) ? Math.round(UnitManager.fromDisplay(val)) : 0;
+      this.capacityManager.ceilingHeight = inches;
+      Pallet.ceilingHeight = inches;
+    });
+
+    // Update label and value when unit mode changes
+    UnitManager.onChange(() => {
+      this.ceilingUnitSpan.textContent = UnitManager.getLabel();
+      const currentInches = this.capacityManager.ceilingHeight || 0;
+      this.ceilingInput.value = currentInches > 0 ? Math.round(UnitManager.toDisplay(currentInches)) : '';
+    });
 
     ceilingRow.appendChild(ceilingLabel);
     ceilingRow.appendChild(this.ceilingInput);
-    ceilingRow.appendChild(inchesLabel);
-    ceilingRow.appendChild(this.feetLabel);
+    ceilingRow.appendChild(this.ceilingUnitSpan);
 
     // Assemble
+    display.appendChild(addressLabel);
+    display.appendChild(this.addressInput);
     display.appendChild(title);
     display.appendChild(counterRow);
     display.appendChild(ceilingRow);
 
     this.containerElement.appendChild(display);
+  }
+
+  /**
+   * Set ceiling height (in inches) and update input
+   */
+  setCeilingHeight(inches) {
+    if (this.ceilingInput) {
+      this.ceilingInput.value = inches > 0 ? Math.round(UnitManager.toDisplay(inches)) : '';
+    }
   }
 
   /**
@@ -121,23 +189,5 @@ export class CapacityDisplay {
     this.capacityManager.subscribe((total) => {
       this.countSpan.textContent = total;
     });
-
-    // Handle ceiling input changes
-    this.ceilingInput.addEventListener('input', () => {
-      const value = parseInt(this.ceilingInput.value);
-      if (!isNaN(value) && value >= 48) {
-        this.capacityManager.setCeilingHeight(value);
-        this.updateFeetLabel();
-      }
-    });
-  }
-
-  /**
-   * Update feet conversion label
-   */
-  updateFeetLabel() {
-    const inches = parseInt(this.ceilingInput.value);
-    const feet = (inches / 12).toFixed(0);
-    this.feetLabel.textContent = `(${feet}ft)`;
   }
 }

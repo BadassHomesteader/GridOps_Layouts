@@ -10,7 +10,7 @@
 export class Grid {
   constructor() {
     this.gridSize = 48; // pixels per foot in world space
-    this.resolution = '1ft'; // '1ft' or '6in'
+    this.resolution = '1ft'; // '1ft', '6in', or '1in'
     this.snapEnabled = true;
   }
 
@@ -18,6 +18,9 @@ export class Grid {
    * Get current grid spacing based on resolution
    */
   getSpacing() {
+    if (this.resolution === '1in') {
+      return this.gridSize / 12; // 4px per inch
+    }
     if (this.resolution === '6in') {
       return this.gridSize / 2; // two lines per foot
     }
@@ -36,8 +39,21 @@ export class Grid {
     // Get visible bounds for culling
     const bounds = viewport.getVisibleBounds(logicalWidth, logicalHeight);
 
-    // Draw sub-grid (6in marks) when resolution is '6in'
-    if (this.resolution === '6in' && viewport.scale > 0.3) {
+    // Draw 1-inch sub-grid when resolution is '1in' and zoomed in enough
+    if (this.resolution === '1in' && viewport.scale > 1.5) {
+      const inchSpacing = this.gridSize / 12;
+      this.drawGridLines(
+        ctx,
+        bounds,
+        inchSpacing,
+        'rgba(0, 0, 0, 0.04)',
+        0.3 / viewport.scale,
+        viewport
+      );
+    }
+
+    // Draw 6-inch sub-grid when resolution is '6in' or '1in'
+    if ((this.resolution === '6in' || this.resolution === '1in') && viewport.scale > 0.3) {
       const subSpacing = this.gridSize / 2;
       this.drawGridLines(
         ctx,
@@ -140,7 +156,7 @@ export class Grid {
    * Set grid resolution
    */
   setResolution(resolution) {
-    if (resolution !== '1ft' && resolution !== '6in') {
+    if (resolution !== '1ft' && resolution !== '6in' && resolution !== '1in') {
       console.error('Invalid resolution:', resolution);
       return;
     }

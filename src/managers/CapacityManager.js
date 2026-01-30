@@ -2,10 +2,8 @@
  * CapacityManager - Pallet capacity calculation with reactive updates
  *
  * Provides:
- * - Total warehouse pallet capacity calculation
- * - Rack capacity contribution (levels x palletsPerLevel)
- * - Floor pallet stacking contribution (ceiling height / pallet height)
- * - Ceiling height configuration
+ * - Total pallet count (sum of pallet quantities)
+ * - Global pallet dimension configuration
  * - Observer pattern for capacity updates
  */
 export class CapacityManager {
@@ -13,7 +11,9 @@ export class CapacityManager {
     this.elementManager = elementManager;
     this.observers = [];
     this.totalCapacity = 0;
-    this.ceilingHeight = 144; // 12 feet in inches (default)
+    this.palletConfig = { width: 48, height: 40 }; // default pallet dimensions in inches
+    this.propertyAddress = '';
+    this.ceilingHeight = 0; // ceiling height in inches (0 = no limit)
 
     // Subscribe to element changes
     this.elementManager.subscribe(() => this.recalculate());
@@ -40,18 +40,14 @@ export class CapacityManager {
   }
 
   /**
-   * Recalculate total capacity from all elements
+   * Recalculate total capacity from all pallet elements
    */
   recalculate() {
     let total = 0;
 
     for (const element of this.elementManager.getAll()) {
-      if (element.type === 'rack') {
-        // Rack contributes its total capacity (levels x palletsPerLevel)
-        total += element.totalCapacity;
-      } else if (element.type === 'pallet') {
-        // Floor pallet contributes stacking potential
-        total += Math.max(1, Math.floor(this.ceilingHeight / element.palletHeight));
+      if (element.type === 'pallet') {
+        total += element.quantity;
       }
     }
 
@@ -60,25 +56,32 @@ export class CapacityManager {
   }
 
   /**
-   * Set ceiling height and recalculate
-   * @param {number} inches - ceiling height in inches
+   * Get global pallet width (inches)
    */
-  setCeilingHeight(inches) {
-    this.ceilingHeight = inches;
-    this.recalculate();
+  getPalletWidth() {
+    return this.palletConfig.width;
   }
 
   /**
-   * Get current ceiling height
-   * @returns {number} - ceiling height in inches
+   * Get global pallet height (inches)
    */
-  getCeilingHeight() {
-    return this.ceilingHeight;
+  getPalletHeight() {
+    return this.palletConfig.height;
+  }
+
+  /**
+   * Set global pallet dimensions
+   * @param {number} width - width in inches
+   * @param {number} height - height in inches
+   */
+  setPalletDimensions(width, height) {
+    this.palletConfig.width = width;
+    this.palletConfig.height = height;
   }
 
   /**
    * Get current total capacity
-   * @returns {number} - total pallet capacity
+   * @returns {number} - total pallet count
    */
   getTotal() {
     return this.totalCapacity;

@@ -62,14 +62,20 @@ export class ElementManager {
    * @returns {Element|null} - top-most element at position, or null
    */
   getElementAtPoint(worldX, worldY) {
+    let perimeterHit = null;
     // Iterate backward (last element = top z-order)
+    // Deprioritize perimeter walls so elements inside them are selected first
     for (let i = this.elements.length - 1; i >= 0; i--) {
       const element = this.elements[i];
       if (element.containsPoint(worldX, worldY)) {
+        if (element.type === 'perimeterWall') {
+          perimeterHit = perimeterHit || element;
+          continue;
+        }
         return element;
       }
     }
-    return null;
+    return perimeterHit;
   }
 
   /**
