@@ -175,6 +175,14 @@ export class ForkliftController {
         continue;
       }
 
+      // PolylineWall: test forklift AABB against each line segment
+      if (element.type === 'polylineWall') {
+        if (element.collidesWithAABB(fb.x, fb.y, fb.width, fb.height)) {
+          return element;
+        }
+        continue;
+      }
+
       // All other elements: standard AABB collision
       const eb = element.getBounds();
       if (

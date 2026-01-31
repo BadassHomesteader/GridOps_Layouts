@@ -10,6 +10,8 @@ import { Element } from './Element.js';
 export class Pallet extends Element {
   // Global ceiling height in inches (set by CapacityDisplay, 0 = no limit)
   static ceilingHeight = 0;
+  // Global default pallet height in inches (set by Sidebar default size editor)
+  static defaultPalletHeight = 48;
 
   constructor(x = 0, y = 0, width = 48, height = 40, palletHeight = 48) {
     super(x, y, width, height, 'pallet');

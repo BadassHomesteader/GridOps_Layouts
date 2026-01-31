@@ -15,6 +15,8 @@ import { Office } from '../shapes/Office.js';
 import { Pallet } from '../shapes/Pallet.js';
 import { Forklift } from '../shapes/Forklift.js';
 import { PerimeterWall } from '../shapes/PerimeterWall.js';
+import { PolylineWall } from '../shapes/PolylineWall.js';
+import { TextBox } from '../shapes/TextBox.js';
 import { UndoManager } from '../managers/UndoManager.js';
 
 export class KeyboardController {
@@ -42,6 +44,20 @@ export class KeyboardController {
   handleKeyDown(event) {
     // Don't interfere with text input in forms
     if (this.isTextInputActive(event.target)) {
+      return;
+    }
+
+    // Ctrl+Shift+Z / Cmd+Shift+Z: redo
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'z') {
+      event.preventDefault();
+      UndoManager.redo();
+      return;
+    }
+
+    // Ctrl+Y / Cmd+Y: redo (alternative)
+    if ((event.ctrlKey || event.metaKey) && event.key === 'y') {
+      event.preventDefault();
+      UndoManager.redo();
       return;
     }
 
@@ -101,8 +117,12 @@ export class KeyboardController {
       // Push undo snapshot before moving
       UndoManager.pushMove(selected);
       for (const el of selected) {
-        el.x += dx;
-        el.y += dy;
+        if (el.type === 'polylineWall') {
+          el.move(dx, dy);
+        } else {
+          el.x += dx;
+          el.y += dy;
+        }
       }
       return;
     }
@@ -132,8 +152,12 @@ export class KeyboardController {
       const element = this.createElement(data);
       if (element) {
         // Offset pasted elements so they don't overlap originals
-        element.x += this.pasteOffset;
-        element.y += this.pasteOffset;
+        if (element.type === 'polylineWall') {
+          element.move(this.pasteOffset, this.pasteOffset);
+        } else {
+          element.x += this.pasteOffset;
+          element.y += this.pasteOffset;
+        }
         this.elementManager.add(element);
         newElements.push(element);
       }
@@ -183,6 +207,15 @@ export class KeyboardController {
       case 'forklift':
         element = new Forklift(data.x, data.y, data.width, data.height);
         if (data.rotation) element.rotation = data.rotation;
+        break;
+      case 'polylineWall':
+        element = new PolylineWall(data.points || []);
+        if (data.thickness) element.thickness = data.thickness;
+        break;
+      case 'textBox':
+        element = new TextBox(data.x, data.y, data.width, data.height, data.text);
+        if (data.fontSize) element.fontSize = data.fontSize;
+        if (data.textColor) element.textColor = data.textColor;
         break;
       default:
         return null;

@@ -12,6 +12,8 @@ import { Office } from '../shapes/Office.js';
 import { Pallet } from '../shapes/Pallet.js';
 import { Forklift } from '../shapes/Forklift.js';
 import { PerimeterWall } from '../shapes/PerimeterWall.js';
+import { PolylineWall } from '../shapes/PolylineWall.js';
+import { TextBox } from '../shapes/TextBox.js';
 import { UnitManager } from '../managers/UnitManager.js';
 import { UndoManager } from '../managers/UndoManager.js';
 import { AlignmentManager } from '../managers/AlignmentManager.js';
@@ -21,7 +23,9 @@ const PALETTE = [
   { type: 'perimeterWall', label: 'Perimeter', desc: '10ft x 10ft', icon: '[]' },
   { type: 'office', label: 'Office', desc: '10ft x 10ft', icon: '#' },
   { type: 'pallet', label: 'Pallet', desc: '48" x 40"', icon: 'P' },
-  { type: 'forklift', label: 'Forklift', desc: '2ft x 1ft', icon: 'FK' }
+  { type: 'forklift', label: 'Forklift', desc: '2ft x 1ft', icon: 'FK' },
+  { type: 'polylineWall', label: 'Poly Wall', desc: 'Freeform', icon: '\u2571' },
+  { type: 'textBox', label: 'Text', desc: 'Label', icon: 'T' }
 ];
 
 export class Sidebar {
@@ -40,6 +44,8 @@ export class Sidebar {
       perimeterWall: { width: 480, height: 480 },  // 10ft x 10ft
       office:        { width: 480, height: 480 },  // 10ft x 10ft
       forklift:      { width: 96,  height: 48 },   // 2ft x 1ft
+      polylineWall:  { width: 480, height: 240 },  // 10ft x 5ft L-shape
+      textBox:       { width: 480, height: 96 },   // 10ft x 2ft
     };
 
     this.fileManager = null;
@@ -58,7 +64,10 @@ export class Sidebar {
    */
   refreshAllDescriptions() {
     for (const item of PALETTE) {
-      if (item.type === 'pallet') {
+      if (item.type === 'polylineWall' || item.type === 'textBox') {
+        // Polyline wall and text box show static descriptions
+        continue;
+      } else if (item.type === 'pallet') {
         const pw = this.capacityManager.getPalletWidth();
         const ph = this.capacityManager.getPalletHeight();
         this.updatePaletteDesc(item.type, pw, ph);
@@ -142,9 +151,57 @@ export class Sidebar {
     printBtn.addEventListener('mouseenter', () => { printBtn.style.background = '#e8e8e8'; });
     printBtn.addEventListener('mouseleave', () => { printBtn.style.background = '#f5f5f5'; });
 
+    // Undo/Redo buttons (Excel-style small arrows)
+    const undoBtn = document.createElement('button');
+    undoBtn.title = 'Undo (Ctrl+Z)';
+    undoBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h7a3 3 0 0 1 0 6H9"/><polyline points="6 4 3 7 6 10"/></svg>`;
+    undoBtn.style.cssText = `
+      width: 30px; height: 30px; border: 1px solid #ccc; border-radius: 4px;
+      cursor: pointer; font-size: 12px; font-family: inherit;
+      background: #f5f5f5; color: #555; display: flex; align-items: center;
+      justify-content: center; padding: 0; transition: all 0.15s;
+    `;
+    undoBtn.disabled = !UndoManager.canUndo();
+    undoBtn.addEventListener('click', () => UndoManager.undo());
+
+    const redoBtn = document.createElement('button');
+    redoBtn.title = 'Redo (Ctrl+Shift+Z)';
+    redoBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7H6a3 3 0 0 0 0 6h1"/><polyline points="10 4 13 7 10 10"/></svg>`;
+    redoBtn.style.cssText = undoBtn.style.cssText;
+    redoBtn.disabled = !UndoManager.canRedo();
+    redoBtn.addEventListener('click', () => UndoManager.redo());
+
+    const updateUndoRedoState = () => {
+      undoBtn.disabled = !UndoManager.canUndo();
+      redoBtn.disabled = !UndoManager.canRedo();
+      undoBtn.style.opacity = undoBtn.disabled ? '0.35' : '1';
+      redoBtn.style.opacity = redoBtn.disabled ? '0.35' : '1';
+      undoBtn.style.cursor = undoBtn.disabled ? 'default' : 'pointer';
+      redoBtn.style.cursor = redoBtn.disabled ? 'default' : 'pointer';
+    };
+    updateUndoRedoState();
+    UndoManager.onChange(updateUndoRedoState);
+
+    for (const btn of [undoBtn, redoBtn]) {
+      btn.addEventListener('mouseenter', () => {
+        if (!btn.disabled) { btn.style.background = '#e0e0e0'; btn.style.borderColor = '#999'; }
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.background = '#f5f5f5'; btn.style.borderColor = '#ccc';
+      });
+    }
+
     container.appendChild(saveBtn);
     container.appendChild(openBtn);
     container.appendChild(printBtn);
+
+    // Separator + undo/redo group
+    const separator = document.createElement('div');
+    separator.style.cssText = `width: 1px; background: #ddd; align-self: stretch; margin: 4px 0;`;
+    container.appendChild(separator);
+    container.appendChild(undoBtn);
+    container.appendChild(redoBtn);
+
     // Insert at very top of sidebar
     this.sidebarElement.insertBefore(container, this.sidebarElement.firstChild);
   }
@@ -447,7 +504,7 @@ export class Sidebar {
       return Math.round(val);
     };
 
-    let widthRow, heightRow;
+    let widthRow, heightRow, palletHeightRow;
 
     const unit = UnitManager.getLabel();
     if (item.type === 'pallet') {
@@ -456,6 +513,7 @@ export class Sidebar {
       const ph = this.capacityManager.getPalletHeight();
       widthRow = createRow('Width:', roundDisplay(UnitManager.toDisplay(pw)), unit);
       heightRow = createRow('Height:', roundDisplay(UnitManager.toDisplay(ph)), unit);
+      palletHeightRow = createRow('P.Ht:', roundDisplay(UnitManager.toDisplay(Pallet.defaultPalletHeight)), unit);
     } else {
       // Other types: convert px to inches (px / 4), then to display unit
       const defaults = this.defaultSizes[item.type];
@@ -465,6 +523,7 @@ export class Sidebar {
 
     overlay.appendChild(widthRow.row);
     overlay.appendChild(heightRow.row);
+    if (palletHeightRow) overlay.appendChild(palletHeightRow.row);
 
     // Buttons
     const btnRow = document.createElement('div');
@@ -495,6 +554,12 @@ export class Sidebar {
 
       if (item.type === 'pallet') {
         this.capacityManager.setPalletDimensions(wInches, hInches);
+        if (palletHeightRow) {
+          const phDisplay = parseFloat(palletHeightRow.input.value);
+          if (!isNaN(phDisplay) && phDisplay > 0) {
+            Pallet.defaultPalletHeight = Math.round(UnitManager.fromDisplay(phDisplay));
+          }
+        }
       } else {
         // Store in pixels (inches * 4)
         this.defaultSizes[item.type] = { width: wInches * 4, height: hInches * 4 };
@@ -583,6 +648,7 @@ export class Sidebar {
       ['Del / Backspace', 'Delete selected'],
       ['Escape', 'Clear selection'],
       ['\u2318Z', 'Undo'],
+      ['\u2318\u21e7Z / \u2318Y', 'Redo'],
       ['\u2318C / \u2318V', 'Copy / Paste'],
       ['Arrow keys', 'Nudge selected'],
       ['Shift + Arrow', 'Nudge 1 inch'],
@@ -668,12 +734,23 @@ export class Sidebar {
       case 'pallet': {
         const pw = this.capacityManager ? this.capacityManager.getPalletWidth() : 48;
         const ph = this.capacityManager ? this.capacityManager.getPalletHeight() : 40;
-        return new Pallet(x, y, pw * 4, ph * 4);
+        return new Pallet(x, y, pw * 4, ph * 4, Pallet.defaultPalletHeight);
       }
       case 'perimeterWall':
         return new PerimeterWall(x, y, ds.width, ds.height);
       case 'forklift':
         return new Forklift(x, y, ds.width, ds.height);
+      case 'polylineWall': {
+        // Default L-shape: 10ft right, then 5ft down
+        const points = [
+          { x, y },
+          { x: x + ds.width, y },
+          { x: x + ds.width, y: y + ds.height }
+        ];
+        return new PolylineWall(points);
+      }
+      case 'textBox':
+        return new TextBox(x, y, ds.width, ds.height);
       default:
         console.error('Unknown element type:', type);
         return null;

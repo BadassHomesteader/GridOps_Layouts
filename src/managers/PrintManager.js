@@ -174,7 +174,7 @@ export class PrintManager {
     <h3>Element Dimensions</h3>
     <table>
       <thead>
-        <tr><th>Type</th><th>X (${UnitManager.getLabel()})</th><th>Y (${UnitManager.getLabel()})</th><th>Width</th><th>Height</th><th>Details</th></tr>
+        <tr><th>Type</th><th>Count</th><th>Width</th><th>Height</th><th>Details</th></tr>
       </thead>
       <tbody>
         ${dimensionRows}
@@ -325,27 +325,58 @@ export class PrintManager {
   }
 
   /**
-   * Build HTML for element dimension table
+   * Build HTML for element dimension table (grouped by type + size + details)
    */
   buildDimensionTable(elements) {
-    return elements.map(el => {
+    const typeLabels = {
+      wall: 'Wall',
+      office: 'Office',
+      pallet: 'Pallet',
+      perimeterWall: 'Perimeter Wall',
+      forklift: 'Forklift',
+      polylineWall: 'Polyline Wall',
+      textBox: 'Text Box'
+    };
+
+    // Group elements by type + size + detail key
+    const groups = {};
+    for (const el of elements) {
       const b = el.getBounds();
-      const posXInches = b.x / 4;
-      const posYInches = b.y / 4;
-      const posX = UnitManager.toDisplay(posXInches).toFixed(1);
-      const posY = UnitManager.toDisplay(posYInches).toFixed(1);
       const widthIn = Math.round(b.width / 4);
       const heightIn = Math.round(b.height / 4);
-      const wLabel = this.formatDimension(widthIn);
-      const hLabel = this.formatDimension(heightIn);
 
-      let details = '';
-      if (el.type === 'pallet') details = `Qty: ${el.quantity}`;
-      if (el.type === 'perimeterWall') details = el.label || '';
-      if (el.type === 'office') details = el.label || 'Office';
-      if (el.type === 'forklift') details = `Rot: ${el.rotation || 0}\u00B0`;
+      let detail = '';
+      if (el.type === 'pallet') detail = `Qty: ${el.quantity}`;
+      if (el.type === 'perimeterWall') detail = el.label || '';
+      if (el.type === 'office') detail = el.label || 'Office';
+      if (el.type === 'forklift') detail = `Rot: ${el.rotation || 0}\u00B0`;
+      if (el.type === 'polylineWall') {
+        const lengthIn = Math.round(el.getTotalLength() / 4);
+        detail = `Length: ${this.formatDimension(lengthIn)}, ${el.points.length} pts`;
+      }
+      if (el.type === 'textBox') detail = `"${el.text}"`;
 
-      return `<tr><td>${el.type}</td><td>${posX}</td><td>${posY}</td><td>${wLabel}</td><td>${hLabel}</td><td>${details}</td></tr>`;
+      const key = `${el.type}|${widthIn}|${heightIn}|${detail}`;
+      if (!groups[key]) {
+        groups[key] = { type: el.type, widthIn, heightIn, detail, count: 0 };
+      }
+      groups[key].count++;
+    }
+
+    // Sort by type then size
+    const typeOrder = ['perimeterWall', 'wall', 'polylineWall', 'office', 'pallet', 'forklift', 'textBox'];
+    const sorted = Object.values(groups).sort((a, b) => {
+      const ta = typeOrder.indexOf(a.type);
+      const tb = typeOrder.indexOf(b.type);
+      if (ta !== tb) return ta - tb;
+      return (b.widthIn * b.heightIn) - (a.widthIn * a.heightIn);
+    });
+
+    return sorted.map(g => {
+      const wLabel = this.formatDimension(g.widthIn);
+      const hLabel = this.formatDimension(g.heightIn);
+      const label = typeLabels[g.type] || g.type;
+      return `<tr><td>${label}</td><td>${g.count}</td><td>${wLabel}</td><td>${hLabel}</td><td>${g.detail}</td></tr>`;
     }).join('\n');
   }
 
@@ -363,7 +394,9 @@ export class PrintManager {
       office: 'Offices',
       pallet: 'Pallet Positions',
       perimeterWall: 'Perimeter Walls',
-      forklift: 'Forklifts'
+      forklift: 'Forklifts',
+      polylineWall: 'Polyline Walls',
+      textBox: 'Text Boxes'
     };
 
     return Object.entries(counts)

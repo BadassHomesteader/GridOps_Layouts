@@ -20,6 +20,7 @@ export class DimensionInput {
     this.coordinateConverter = coordinateConverter;
     this.capacityManager = capacityManager;
     this.overlay = null;
+    this.onEditPoints = null; // callback(element) when "Edit Points" clicked
 
     this.setupListeners();
   }
@@ -80,7 +81,9 @@ export class DimensionInput {
       office: 'Office',
       pallet: 'Pallet',
       perimeterWall: 'Perimeter Wall',
-      forklift: 'Forklift'
+      forklift: 'Forklift',
+      polylineWall: 'Polyline Wall',
+      textBox: 'Text Box'
     };
 
     const title = document.createElement('div');
@@ -91,6 +94,18 @@ export class DimensionInput {
       margin-bottom: 10px;
     `;
     this.overlay.appendChild(title);
+
+    // Polyline wall gets a specialized editor
+    if (element.type === 'polylineWall') {
+      this.buildPolylineEditor(element);
+      return;
+    }
+
+    // Text box gets a specialized editor
+    if (element.type === 'textBox') {
+      this.buildTextBoxEditor(element);
+      return;
+    }
 
     // Width input (convert px to inches, then to display unit)
     const widthInches = element.width / 4;
@@ -106,13 +121,20 @@ export class DimensionInput {
     heightRow.input.step = UnitManager.mode === 'feet' ? 0.1 : 1;
     this.overlay.appendChild(heightRow.row);
 
-    // Quantity input for pallets
+    // Quantity and pallet height inputs for pallets
     let quantityRow = null;
+    let palletHeightRow = null;
     if (element.type === 'pallet') {
       quantityRow = this.createInputRow('Qty:', element.quantity, '');
       quantityRow.input.min = 1;
       quantityRow.input.step = 1;
       this.overlay.appendChild(quantityRow.row);
+
+      const phDisplay = UnitManager.toDisplay(element.palletHeight);
+      palletHeightRow = this.createInputRow('P.Ht:', this.roundDisplay(phDisplay), UnitManager.getLabel());
+      palletHeightRow.input.step = UnitManager.mode === 'feet' ? 0.1 : 1;
+      palletHeightRow.input.min = 1;
+      this.overlay.appendChild(palletHeightRow.row);
     }
 
     // Label input for perimeter walls and offices
@@ -231,7 +253,10 @@ export class DimensionInput {
         width: element.width,
         height: element.height
       };
-      if (element.type === 'pallet') oldProps.quantity = element.quantity;
+      if (element.type === 'pallet') {
+        oldProps.quantity = element.quantity;
+        oldProps.palletHeight = element.palletHeight;
+      }
       if (element.type === 'perimeterWall') oldProps.label = element.label;
       if (element.type === 'office') {
         oldProps.label = element.label;
@@ -252,8 +277,14 @@ export class DimensionInput {
         const qty = parseInt(quantityRow.input.value);
         if (!isNaN(qty) && qty >= 1) {
           element.quantity = qty;
-          this.capacityManager.recalculate();
         }
+        if (palletHeightRow) {
+          const ph = UnitManager.fromDisplay(parseFloat(palletHeightRow.input.value));
+          if (!isNaN(ph) && ph > 0) {
+            element.palletHeight = ph;
+          }
+        }
+        this.capacityManager.recalculate();
       }
 
       if (labelRow && element.type === 'perimeterWall') {
@@ -300,6 +331,223 @@ export class DimensionInput {
     // Focus first input
     widthRow.input.focus();
     widthRow.input.select();
+  }
+
+  /**
+   * Build polyline-specific editor (thickness, info, Edit Points button)
+   */
+  buildPolylineEditor(element) {
+    // Thickness input (convert px to inches, then to display unit)
+    const thicknessInches = element.thickness / 4;
+    const thicknessDisplay = UnitManager.toDisplay(thicknessInches);
+    const thicknessRow = this.createInputRow('Thick:', this.roundDisplay(thicknessDisplay), UnitManager.getLabel());
+    thicknessRow.input.step = UnitManager.mode === 'feet' ? 0.1 : 1;
+    thicknessRow.input.min = 1;
+    this.overlay.appendChild(thicknessRow.row);
+
+    // Segment count (read-only)
+    const segCount = Math.max(0, element.points.length - 1);
+    const segRow = this.createReadOnlyRow('Segments:', `${segCount}`);
+    this.overlay.appendChild(segRow);
+
+    // Total length (read-only)
+    const totalLengthInches = element.getTotalLength() / 4;
+    const lengthDisplay = UnitManager.formatValue(totalLengthInches) + ' ' + UnitManager.getLabel();
+    const lenRow = this.createReadOnlyRow('Length:', lengthDisplay);
+    this.overlay.appendChild(lenRow);
+
+    // Buttons row
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = `display: flex; gap: 6px; margin-top: 10px;`;
+
+    const applyBtn = document.createElement('button');
+    applyBtn.textContent = 'Apply';
+    applyBtn.style.cssText = `
+      padding: 4px 12px; background: #4a90d9; color: #fff;
+      border: none; border-radius: 3px; cursor: pointer;
+      font-size: 12px; font-family: inherit;
+    `;
+
+    const editPtsBtn = document.createElement('button');
+    editPtsBtn.textContent = 'Edit Points';
+    editPtsBtn.style.cssText = `
+      padding: 4px 12px; background: #e8a735; color: #fff;
+      border: none; border-radius: 3px; cursor: pointer;
+      font-size: 12px; font-family: inherit;
+    `;
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+      padding: 4px 12px; background: #f5f5f5; color: #333;
+      border: 1px solid #ccc; border-radius: 3px; cursor: pointer;
+      font-size: 12px; font-family: inherit;
+    `;
+
+    const apply = () => {
+      const oldProps = { thickness: element.thickness };
+      UndoManager.pushProps(element, oldProps);
+
+      const newThickness = UnitManager.fromDisplay(parseFloat(thicknessRow.input.value)) * 4;
+      if (!isNaN(newThickness) && newThickness > 0) {
+        element.thickness = newThickness;
+        element.updateBounds();
+      }
+      this.close();
+    };
+
+    applyBtn.addEventListener('click', apply);
+    cancelBtn.addEventListener('click', () => this.close());
+    editPtsBtn.addEventListener('click', () => {
+      this.close();
+      if (this.onEditPoints) {
+        this.onEditPoints(element);
+      }
+    });
+
+    btnRow.appendChild(applyBtn);
+    btnRow.appendChild(editPtsBtn);
+    btnRow.appendChild(cancelBtn);
+    this.overlay.appendChild(btnRow);
+
+    // Keyboard handling
+    this.overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); apply(); }
+      else if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+      e.stopPropagation();
+    });
+
+    document.body.appendChild(this.overlay);
+    thicknessRow.input.focus();
+    thicknessRow.input.select();
+  }
+
+  /**
+   * Build text box editor (text, font size, color, width, height)
+   */
+  buildTextBoxEditor(element) {
+    // Text input
+    const textRow = this.createTextInputRow('Text:', element.text || '');
+    this.overlay.appendChild(textRow.row);
+
+    // Font size input (world pixels)
+    const fontSizeRow = this.createInputRow('Size:', element.fontSize, 'pt');
+    fontSizeRow.input.min = 4;
+    fontSizeRow.input.step = 1;
+    this.overlay.appendChild(fontSizeRow.row);
+
+    // Color picker
+    const colorRow = document.createElement('div');
+    colorRow.style.cssText = `display: flex; align-items: center; gap: 6px; margin-bottom: 6px;`;
+    const colorLabel = document.createElement('span');
+    colorLabel.textContent = 'Color:';
+    colorLabel.style.cssText = `width: 45px;`;
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = element.textColor || '#333333';
+    colorInput.style.cssText = `width: 40px; height: 28px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;`;
+    colorRow.appendChild(colorLabel);
+    colorRow.appendChild(colorInput);
+    this.overlay.appendChild(colorRow);
+
+    // Width input
+    const widthInches = element.width / 4;
+    const widthDisplay = UnitManager.toDisplay(widthInches);
+    const widthRow = this.createInputRow('X:', this.roundDisplay(widthDisplay), UnitManager.getLabel());
+    widthRow.input.step = UnitManager.mode === 'feet' ? 0.1 : 1;
+    this.overlay.appendChild(widthRow.row);
+
+    // Height input
+    const heightInches = element.height / 4;
+    const heightDisplay = UnitManager.toDisplay(heightInches);
+    const heightRow = this.createInputRow('Y:', this.roundDisplay(heightDisplay), UnitManager.getLabel());
+    heightRow.input.step = UnitManager.mode === 'feet' ? 0.1 : 1;
+    this.overlay.appendChild(heightRow.row);
+
+    // Buttons
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = `display: flex; gap: 6px; margin-top: 10px;`;
+
+    const applyBtn = document.createElement('button');
+    applyBtn.textContent = 'Apply';
+    applyBtn.style.cssText = `
+      padding: 4px 12px; background: #4a90d9; color: #fff;
+      border: none; border-radius: 3px; cursor: pointer;
+      font-size: 12px; font-family: inherit;
+    `;
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+      padding: 4px 12px; background: #f5f5f5; color: #333;
+      border: 1px solid #ccc; border-radius: 3px; cursor: pointer;
+      font-size: 12px; font-family: inherit;
+    `;
+
+    const apply = () => {
+      const oldProps = {
+        text: element.text,
+        fontSize: element.fontSize,
+        textColor: element.textColor,
+        width: element.width,
+        height: element.height
+      };
+      UndoManager.pushProps(element, oldProps);
+
+      element.text = textRow.input.value || 'Label';
+
+      const newFontSize = parseFloat(fontSizeRow.input.value);
+      if (!isNaN(newFontSize) && newFontSize >= 4) {
+        element.fontSize = newFontSize;
+      }
+
+      element.textColor = colorInput.value;
+
+      const newWidth = UnitManager.fromDisplay(parseFloat(widthRow.input.value)) * 4;
+      const newHeight = UnitManager.fromDisplay(parseFloat(heightRow.input.value)) * 4;
+      if (!isNaN(newWidth) && newWidth > 0 && !isNaN(newHeight) && newHeight > 0) {
+        element.setSize(newWidth, newHeight);
+      }
+
+      this.close();
+    };
+
+    applyBtn.addEventListener('click', apply);
+    cancelBtn.addEventListener('click', () => this.close());
+
+    btnRow.appendChild(applyBtn);
+    btnRow.appendChild(cancelBtn);
+    this.overlay.appendChild(btnRow);
+
+    // Keyboard handling
+    this.overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); apply(); }
+      else if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+      e.stopPropagation();
+    });
+
+    document.body.appendChild(this.overlay);
+    textRow.input.focus();
+    textRow.input.select();
+  }
+
+  /**
+   * Create a read-only info row
+   */
+  createReadOnlyRow(label, value) {
+    const row = document.createElement('div');
+    row.style.cssText = `
+      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    `;
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = label;
+    labelSpan.style.cssText = `width: 65px; color: #666;`;
+    const valueSpan = document.createElement('span');
+    valueSpan.textContent = value;
+    valueSpan.style.cssText = `font-weight: 600;`;
+    row.appendChild(labelSpan);
+    row.appendChild(valueSpan);
+    return row;
   }
 
   /**

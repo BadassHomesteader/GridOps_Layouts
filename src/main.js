@@ -78,6 +78,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // Dimension editor (double-click element on canvas to edit)
   const dimensionInput = new DimensionInput(canvas, elementManager, selectionManager, coordinateConverter, capacityManager);
 
+  // --- Point Edit Mode (for polyline walls) ---
+  let isPointEditing = false;
+  let editingPolyline = null;
+  let draggingPointIndex = -1;
+
+  const enterPointEditMode = (element) => {
+    isPointEditing = true;
+    editingPolyline = element;
+    editingPolyline.editing = true;
+    editingPolyline.selectedPointIndex = -1;
+    draggingPointIndex = -1;
+    canvas.style.cursor = 'crosshair';
+  };
+
+  const exitPointEditMode = () => {
+    if (editingPolyline) {
+      editingPolyline.editing = false;
+      editingPolyline.selectedPointIndex = -1;
+    }
+    isPointEditing = false;
+    editingPolyline = null;
+    draggingPointIndex = -1;
+    canvas.style.cursor = 'default';
+  };
+
+  // Wire up DimensionInput "Edit Points" callback
+  dimensionInput.onEditPoints = (element) => {
+    enterPointEditMode(element);
+  };
+
   // Register draw callbacks (order matters: forklift update -> grid -> elements -> selection overlay)
   // Forklift update runs first to set collision state before element rendering
   renderer.addDrawCallback((ctx, viewport, deltaTime) => {
@@ -106,19 +136,62 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.restore();
   });
 
+  // Draw snap guide lines during edge snapping
+  renderer.addDrawCallback((ctx, vp) => {
+    const guides = dragMoveController.activeSnapGuides;
+    if (!guides || guides.length === 0) return;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 100, 100, 0.7)';
+    ctx.lineWidth = 1 / vp.scale;
+    ctx.setLineDash([6 / vp.scale, 4 / vp.scale]);
+
+    for (const g of guides) {
+      ctx.beginPath();
+      if (g.axis === 'x') {
+        // Vertical guide line
+        ctx.moveTo(g.pos, g.min);
+        ctx.lineTo(g.pos, g.max);
+      } else {
+        // Horizontal guide line
+        ctx.moveTo(g.min, g.pos);
+        ctx.lineTo(g.max, g.pos);
+      }
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  });
+
   // --- Pan Input ---
   let isPanning = false;
   let lastX = 0;
   let lastY = 0;
   let isSpaceHeld = false;
 
-  // Track Space key for pan mode
+  // Track Space key for pan mode + point-edit mode keys
   window.addEventListener('keydown', (event) => {
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) return;
+
     if (event.code === 'Space' && !isSpaceHeld) {
-      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) return;
       event.preventDefault();
       isSpaceHeld = true;
       canvas.style.cursor = 'grab';
+    }
+
+    // Point edit mode: Escape to exit, Backspace to delete selected point
+    if (isPointEditing && editingPolyline) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        exitPointEditMode();
+      } else if ((event.key === 'Backspace' || event.key === 'Delete') && editingPolyline.selectedPointIndex >= 0) {
+        event.preventDefault();
+        UndoManager.pushPoints(editingPolyline);
+        const removed = editingPolyline.removePoint(editingPolyline.selectedPointIndex);
+        if (removed) {
+          editingPolyline.selectedPointIndex = -1;
+        }
+      }
     }
   });
   window.addEventListener('keyup', (event) => {
@@ -156,6 +229,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Convert to world coordinates
     const world = coordinateConverter.screenToWorld(canvasX, canvasY);
+
+    // --- Point Edit Mode handling ---
+    if (isPointEditing && editingPolyline) {
+      const handleRadius = 8 / (viewport.scale || 1);
+
+      // Check if clicking on a point handle
+      const pointIdx = editingPolyline.getPointAtWorld(world.x, world.y, handleRadius);
+      if (pointIdx >= 0) {
+        // Select and start dragging this point
+        editingPolyline.selectedPointIndex = pointIdx;
+        draggingPointIndex = pointIdx;
+        UndoManager.pushPoints(editingPolyline);
+        return;
+      }
+
+      // Check if clicking on a segment (insert new point)
+      const segIdx = editingPolyline.getClosestSegment(world.x, world.y);
+      if (segIdx >= 0) {
+        // Check distance to segment
+        const p1 = editingPolyline.points[segIdx];
+        const p2 = editingPolyline.points[segIdx + 1];
+        const dist = editingPolyline.pointToSegmentDist(world.x, world.y, p1.x, p1.y, p2.x, p2.y);
+        if (dist < editingPolyline.thickness / 2 + handleRadius) {
+          // Insert point on segment at click location
+          UndoManager.pushPoints(editingPolyline);
+          const snapped = grid.snapToGrid(world.x, world.y);
+          editingPolyline.insertPoint(segIdx, { x: snapped.x, y: snapped.y });
+          editingPolyline.selectedPointIndex = segIdx + 1;
+          draggingPointIndex = segIdx + 1;
+          return;
+        }
+      }
+
+      // Clicked on empty space — exit point edit mode
+      exitPointEditMode();
+      return;
+    }
 
     // Check if clicking on any selected element (start multi-drag)
     const clickedOnSelected = selectionManager.getSelectedAll().some(
@@ -209,6 +319,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Point-edit drag takes priority
+    if (isPointEditing && draggingPointIndex >= 0 && editingPolyline) {
+      const world = coordinateConverter.screenToWorld(canvasX, canvasY);
+      const snapped = event.shiftKey ? world : grid.snapToGrid(world.x, world.y);
+      editingPolyline.points[draggingPointIndex].x = snapped.x;
+      editingPolyline.points[draggingPointIndex].y = snapped.y;
+      editingPolyline.updateBounds();
+      return;
+    }
+
     // Element drag takes priority
     if (dragMoveController.getIsDragging()) {
       const world = coordinateConverter.screenToWorld(canvasX, canvasY);
@@ -234,6 +354,12 @@ document.addEventListener('DOMContentLoaded', () => {
       isPanning = false;
       canvas.classList.remove('panning');
       canvas.style.cursor = isSpaceHeld ? 'grab' : 'default';
+      return;
+    }
+
+    // End point drag
+    if (isPointEditing && draggingPointIndex >= 0) {
+      draggingPointIndex = -1;
       return;
     }
 
@@ -267,6 +393,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   canvas.addEventListener('mouseleave', () => {
+    if (isPointEditing && draggingPointIndex >= 0) {
+      draggingPointIndex = -1;
+    }
     if (dragMoveController.getIsDragging()) {
       dragMoveController.endDrag();
       canvas.style.cursor = 'default';
@@ -439,48 +568,113 @@ document.addEventListener('DOMContentLoaded', () => {
   // Zoom-to-fit after file open
   fileManager.onLoad = zoomToFit;
 
-  const createZoomToFitButton = () => {
+  const createZoomControls = () => {
     const container = document.createElement('div');
-    container.id = 'zoom-fit-control';
+    container.id = 'zoom-controls';
     container.style.cssText = `
       position: fixed;
       bottom: 50px;
       right: 16px;
       z-index: 100;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 8px 12px;
-      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 6px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 12px;
       color: #333;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 0;
+      overflow: hidden;
     `;
 
-    const btn = document.createElement('button');
-    btn.textContent = 'Fit All';
-    btn.style.cssText = `
-      padding: 4px 12px;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      background: rgba(0, 0, 0, 0.05);
-      color: #333;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 12px;
+    const btnStyle = `
+      width: 32px; height: 32px; border: none; background: transparent;
+      color: #444; cursor: pointer; font-size: 16px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; padding: 0; font-family: inherit;
     `;
-    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(0, 0, 0, 0.1)'; });
-    btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(0, 0, 0, 0.05)'; });
 
-    btn.addEventListener('click', (event) => {
-      event.stopPropagation();
+    const zoomOut = document.createElement('button');
+    zoomOut.textContent = '\u2212';
+    zoomOut.title = 'Zoom Out';
+    zoomOut.style.cssText = btnStyle;
+
+    const zoomLabel = document.createElement('span');
+    zoomLabel.style.cssText = `
+      min-width: 48px; text-align: center; font-size: 11px;
+      font-weight: 600; color: #555; user-select: none; cursor: pointer;
+    `;
+    zoomLabel.title = 'Reset to 100%';
+
+    const zoomIn = document.createElement('button');
+    zoomIn.textContent = '+';
+    zoomIn.title = 'Zoom In';
+    zoomIn.style.cssText = btnStyle;
+
+    const divider = document.createElement('div');
+    divider.style.cssText = `width: 1px; height: 20px; background: #ddd;`;
+
+    const fitBtn = document.createElement('button');
+    fitBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6V2h4"/><path d="M14 6V2h-4"/><path d="M2 10v4h4"/><path d="M14 10v4h-4"/></svg>`;
+    fitBtn.title = 'Fit All';
+    fitBtn.style.cssText = btnStyle + 'width: 36px;';
+
+    const updateLabel = () => {
+      zoomLabel.textContent = Math.round(viewport.scale * 100) + '%';
+    };
+    updateLabel();
+
+    // Update zoom label on every frame via render callback
+    renderer.addDrawCallback(() => updateLabel());
+
+    const getCanvasCenter = () => {
+      const { width, height } = canvasSetup.getLogicalSize();
+      return { x: width / 2, y: height / 2 };
+    };
+
+    zoomIn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const c = getCanvasCenter();
+      viewport.zoom(1.25, c.x, c.y);
+    });
+
+    zoomOut.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const c = getCanvasCenter();
+      viewport.zoom(0.8, c.x, c.y);
+    });
+
+    zoomLabel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Reset to 100% centered on current view center
+      const c = getCanvasCenter();
+      const worldCenterX = (c.x - viewport.offsetX) / viewport.scale;
+      const worldCenterY = (c.y - viewport.offsetY) / viewport.scale;
+      viewport.scale = 1;
+      viewport.offsetX = c.x - worldCenterX;
+      viewport.offsetY = c.y - worldCenterY;
+    });
+
+    fitBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       zoomToFit();
     });
 
-    container.appendChild(btn);
+    for (const btn of [zoomOut, zoomIn, fitBtn]) {
+      btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(0,0,0,0.07)'; });
+      btn.addEventListener('mouseleave', () => { btn.style.background = 'transparent'; });
+    }
+
+    container.appendChild(zoomOut);
+    container.appendChild(zoomLabel);
+    container.appendChild(zoomIn);
+    container.appendChild(divider);
+    container.appendChild(fitBtn);
     document.body.appendChild(container);
   };
 
-  createZoomToFitButton();
+  createZoomControls();
 
   // --- Unit Toggle UI (in / ft) ---
   const createUnitToggle = () => {

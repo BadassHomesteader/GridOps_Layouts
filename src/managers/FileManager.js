@@ -12,6 +12,8 @@ import { Office } from '../shapes/Office.js';
 import { Pallet } from '../shapes/Pallet.js';
 import { Forklift } from '../shapes/Forklift.js';
 import { PerimeterWall } from '../shapes/PerimeterWall.js';
+import { PolylineWall } from '../shapes/PolylineWall.js';
+import { TextBox } from '../shapes/TextBox.js';
 
 export class FileManager {
   constructor(elementManager, capacityManager, selectionManager, capacityDisplay) {
@@ -123,6 +125,15 @@ export class FileManager {
       case 'forklift':
         element = new Forklift(data.x, data.y, data.width, data.height);
         if (data.rotation) element.rotation = data.rotation;
+        break;
+      case 'polylineWall':
+        element = new PolylineWall(data.points || []);
+        if (data.thickness) element.thickness = data.thickness;
+        break;
+      case 'textBox':
+        element = new TextBox(data.x, data.y, data.width, data.height, data.text);
+        if (data.fontSize) element.fontSize = data.fontSize;
+        if (data.textColor) element.textColor = data.textColor;
         break;
       default:
         console.error('Unknown element type in file:', data.type);
