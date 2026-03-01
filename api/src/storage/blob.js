@@ -55,6 +55,7 @@ async function readJSON(containerName, blobName) {
     }
 
     const containerClient = getBlobServiceClient().getContainerClient(containerName);
+    await containerClient.createIfNotExists();
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
     try {
@@ -84,6 +85,7 @@ async function writeJSON(containerName, blobName, data) {
     }
 
     const containerClient = getBlobServiceClient().getContainerClient(containerName);
+    await containerClient.createIfNotExists();
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
     await blockBlobClient.upload(content, Buffer.byteLength(content), {
@@ -113,6 +115,7 @@ async function listJSON(containerName, prefix) {
     }
 
     const containerClient = getBlobServiceClient().getContainerClient(containerName);
+    await containerClient.createIfNotExists();
     const blobs = [];
 
     for await (const blob of containerClient.listBlobsFlat({ prefix })) {
