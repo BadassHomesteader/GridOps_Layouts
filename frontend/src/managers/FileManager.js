@@ -1,9 +1,9 @@
 /**
- * FileManager - Local file save/open for warehouse layouts
+ * FileManager - Save/open warehouse layouts (cloud + local file)
  *
  * Provides:
- * - Save layout to local .json file
- * - Open layout from local .json file
+ * - Cloud save/load via API (shared projects)
+ * - Local file export/import (backward compatible)
  * - Serializes/deserializes all elements with type-specific properties
  */
 import { UndoManager } from './UndoManager.js';
@@ -14,6 +14,7 @@ import { Forklift } from '../shapes/Forklift.js';
 import { PerimeterWall } from '../shapes/PerimeterWall.js';
 import { PolylineWall } from '../shapes/PolylineWall.js';
 import { TextBox } from '../shapes/TextBox.js';
+import { apiGet, apiPost, apiPut } from '../auth/api-client.js';
 
 export class FileManager {
   constructor(elementManager, capacityManager, selectionManager, capacityDisplay) {
@@ -22,10 +23,15 @@ export class FileManager {
     this.selectionManager = selectionManager;
     this.capacityDisplay = capacityDisplay;
     this.onLoad = null; // callback after file load (e.g. zoom-to-fit)
+
+    // Cloud project state
+    this.currentProjectId = null;
+    this.currentProjectName = null;
+    this.currentProjectCanEdit = true;
   }
 
   /**
-   * Serialize current layout to JSON
+   * Serialize current layout to JSON string
    */
   serialize() {
     const elements = this.elementManager.getAll().map(el => el.toJSON());
@@ -142,17 +148,74 @@ export class FileManager {
     return element;
   }
 
+  // --- Cloud Methods ---
+
   /**
-   * Save layout to local file
+   * Save current layout to cloud project.
+   * If no current project, prompts to create one.
    */
   async save() {
+    if (this.currentProjectId) {
+      await this.saveToCloud(this.currentProjectId);
+    } else {
+      // No cloud project loaded — export locally
+      await this.exportLocal();
+    }
+  }
+
+  /**
+   * Save layout to an existing cloud project
+   */
+  async saveToCloud(projectId) {
+    try {
+      const layout = JSON.parse(this.serialize());
+      await apiPut(`/projects/${projectId}`, {
+        name: this.currentProjectName,
+        layout
+      });
+      console.log('[FileManager] Saved to cloud:', projectId);
+    } catch (err) {
+      console.error('[FileManager] Cloud save failed:', err);
+      alert('Failed to save: ' + err.message);
+    }
+  }
+
+  /**
+   * Open project browser (called by Sidebar "Open" button)
+   * The ProjectBrowser handles the rest.
+   */
+  open() {
+    if (this._projectBrowser) {
+      this._projectBrowser.show();
+    } else {
+      // Fallback: local import if ProjectBrowser not set
+      this.importLocal();
+    }
+  }
+
+  /**
+   * Set the ProjectBrowser reference
+   */
+  setProjectBrowser(browser) {
+    this._projectBrowser = browser;
+  }
+
+  // --- Local File Methods (backward compatible) ---
+
+  /**
+   * Export layout to local .json file
+   */
+  async exportLocal() {
     const json = this.serialize();
 
     // Try File System Access API first (Chrome/Edge)
     if (window.showSaveFilePicker) {
       try {
+        const suggestedName = this.currentProjectName
+          ? `${this.currentProjectName.replace(/[^a-z0-9]/gi, '-')}.json`
+          : 'warehouse-layout.json';
         const handle = await window.showSaveFilePicker({
-          suggestedName: 'warehouse-layout.json',
+          suggestedName,
           types: [{
             description: 'GridOps Layout',
             accept: { 'application/json': ['.json'] }
@@ -163,7 +226,7 @@ export class FileManager {
         await writable.close();
         return;
       } catch (err) {
-        if (err.name === 'AbortError') return; // User cancelled
+        if (err.name === 'AbortError') return;
       }
     }
 
@@ -178,9 +241,13 @@ export class FileManager {
   }
 
   /**
-   * Open layout from local file
+   * Import layout from local .json file
    */
-  async open() {
+  async importLocal() {
+    // Clear cloud project state when importing locally
+    this.currentProjectId = null;
+    this.currentProjectName = null;
+
     // Try File System Access API first
     if (window.showOpenFilePicker) {
       try {
@@ -195,7 +262,7 @@ export class FileManager {
         this.deserialize(json);
         return;
       } catch (err) {
-        if (err.name === 'AbortError') return; // User cancelled
+        if (err.name === 'AbortError') return;
       }
     }
 

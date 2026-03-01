@@ -1,0 +1,17 @@
+{
+  "name": "gridops-layouts-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API for GridOps Layouts",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.7.2",
+    "@azure/storage-blob": "^12.30.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

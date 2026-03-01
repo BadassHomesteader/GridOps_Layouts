@@ -27,8 +27,14 @@ import { FileManager } from './managers/FileManager.js';
 import { PrintManager } from './managers/PrintManager.js';
 import { UnitManager } from './managers/UnitManager.js';
 import { UndoManager } from './managers/UndoManager.js';
+import { ProjectBrowser } from './ui/ProjectBrowser.js';
+import { init as initAuth, getUser, isAuthenticated, logout } from './auth/auth.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize auth first (may redirect to Microsoft login)
+  await initAuth();
+  if (!isAuthenticated()) return; // auth will redirect
+
   // Get canvas element
   const canvas = document.getElementById('gridCanvas');
   if (!canvas) {
@@ -66,7 +72,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // File manager (save/open layouts)
   const fileManager = new FileManager(elementManager, capacityManager, selectionManager, capacityDisplay);
+
+  // Project browser (cloud project list)
+  const projectBrowser = new ProjectBrowser(fileManager);
+  fileManager.setProjectBrowser(projectBrowser);
+
+  // Auth: show user in sidebar and wire up logout
+  sidebar.setLogout(logout);
   sidebar.setFileManager(fileManager);
+  const user = getUser();
+  if (user) sidebar.setUser(user);
 
   // Print manager
   const printManager = new PrintManager(elementManager, capacityManager, canvasSetup, viewport, grid);

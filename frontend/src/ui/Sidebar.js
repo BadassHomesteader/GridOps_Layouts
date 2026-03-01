@@ -106,6 +106,45 @@ export class Sidebar {
   }
 
   /**
+   * Set user info to display in sidebar header
+   */
+  setUser(user) {
+    if (!user) return;
+    // Create user profile bar at the very top
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      padding: 8px 12px; background: #e8f0fe; border-bottom: 1px solid #ccc;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; color: #333;
+    `;
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = user.name || user.email;
+    nameSpan.style.cssText = 'font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+
+    bar.appendChild(nameSpan);
+
+    if (this._logout) {
+      const logoutBtn = document.createElement('button');
+      logoutBtn.textContent = 'Sign Out';
+      logoutBtn.style.cssText = `
+        background: none; border: none; color: #4a90d9; cursor: pointer;
+        font-size: 11px; font-family: inherit; padding: 0;
+      `;
+      logoutBtn.addEventListener('click', this._logout);
+      bar.appendChild(logoutBtn);
+    }
+
+    this.sidebarElement.insertBefore(bar, this.sidebarElement.firstChild);
+  }
+
+  /**
+   * Set logout function reference
+   */
+  setLogout(logoutFn) {
+    this._logout = logoutFn;
+  }
+
+  /**
    * Create save/open/print buttons at top of sidebar
    */
   createFileButtons() {

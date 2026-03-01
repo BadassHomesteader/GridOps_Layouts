@@ -1,1 +1,11 @@
 Deployment-*/
+
+# Node
+node_modules/
+
+# Azure Functions local config
+local.settings.json
+
+# OS files
+.DS_Store
+Thumbs.db

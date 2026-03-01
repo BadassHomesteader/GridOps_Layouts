@@ -1,0 +1,11 @@
+{
+  "allowedUsers": [
+    { "email": "jlunkwitz@contractcallers.com", "role": "admin" },
+    { "email": "juergs@geeksare.cool", "role": "admin" },
+    { "email": "juergs@geeksarecool.onmicrosoft.com", "role": "admin" },
+    { "email": "dev@localhost", "role": "admin" }
+  ],
+  "settings": {
+    "allowNewUsersByDefault": false
+  }
+}

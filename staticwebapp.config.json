@@ -1,0 +1,12 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/api/*", "/*.{css,js,jpg,png,svg,json,ico}"]
+  },
+  "globalHeaders": {
+    "Cache-Control": "no-cache, no-store, must-revalidate"
+  },
+  "platform": {
+    "apiRuntime": "node:20"
+  }
+}
