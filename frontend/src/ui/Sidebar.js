@@ -154,14 +154,16 @@ export class Sidebar {
     bar.appendChild(avatarBtn);
     bar.appendChild(nameLabel);
 
-    // Dropdown menu
+    // Dropdown menu — appended to document.body with position:fixed
+    // so it's not clipped by sidebar overflow
     const dropdown = document.createElement('div');
     dropdown.className = 'profile-dropdown';
     dropdown.style.cssText = `
-      display: none; position: absolute; top: calc(100% + 4px); left: 8px;
-      min-width: 210px; background: #fff; border: 1px solid #ddd;
+      display: none; position: fixed;
+      min-width: 240px; background: #fff; border: 1px solid #ddd;
       border-radius: 12px; box-shadow: 0 8px 30px -4px rgba(0,0,0,0.15);
       z-index: 1100; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     `;
 
     // Dropdown header with avatar + info
@@ -179,7 +181,7 @@ export class Sidebar {
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     `;
     const headerInfo = document.createElement('div');
-    headerInfo.style.cssText = 'min-width: 0;';
+    headerInfo.style.cssText = 'min-width: 0; flex: 1;';
     const headerName = document.createElement('div');
     headerName.textContent = name;
     headerName.style.cssText = 'font-weight: 600; font-size: 13px; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
@@ -192,18 +194,46 @@ export class Sidebar {
     header.appendChild(headerInfo);
     dropdown.appendChild(header);
 
-    // Sign out button
-    if (this._logout) {
+    // Helper to create a menu item
+    const menuItemStyle = `
+      width: 100%; padding: 10px 16px; border: none; background: none;
+      font-family: inherit; font-size: 13px; color: #333; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; transition: background 0.15s;
+      text-decoration: none; box-sizing: border-box;
+    `;
+    const addMenuItem = (iconSvg, label, onClick) => {
+      const btn = document.createElement('button');
+      btn.style.cssText = menuItemStyle;
+      btn.innerHTML = iconSvg + ' ' + label;
+      btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(0,0,0,0.04)'; });
+      btn.addEventListener('mouseleave', () => { btn.style.background = 'none'; });
+      btn.addEventListener('click', () => { closeDropdown(); onClick(); });
+      dropdown.appendChild(btn);
+      return btn;
+    };
+
+    // Menu items separator
+    const addSep = () => {
       const sep = document.createElement('div');
       sep.style.cssText = 'height: 1px; background: #eee; margin: 0;';
       dropdown.appendChild(sep);
+    };
 
+    addSep();
+
+    // Manage Users
+    addMenuItem(
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+      'Manage Users',
+      () => { window.open('users.html', '_blank'); }
+    );
+
+    addSep();
+
+    // Sign out
+    if (this._logout) {
       const logoutBtn = document.createElement('button');
-      logoutBtn.style.cssText = `
-        width: 100%; padding: 10px 16px; border: none; background: none;
-        font-family: inherit; font-size: 13px; color: #c53030; cursor: pointer;
-        display: flex; align-items: center; gap: 8px; transition: background 0.15s;
-      `;
+      logoutBtn.style.cssText = menuItemStyle + 'color: #c53030;';
       logoutBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign out`;
       logoutBtn.addEventListener('mouseenter', () => { logoutBtn.style.background = 'rgba(197,48,48,0.06)'; });
       logoutBtn.addEventListener('mouseleave', () => { logoutBtn.style.background = 'none'; });
@@ -214,27 +244,32 @@ export class Sidebar {
       dropdown.appendChild(logoutBtn);
     }
 
-    bar.appendChild(dropdown);
+    document.body.appendChild(dropdown);
 
-    // Toggle dropdown on avatar click
+    // Toggle dropdown on avatar click, position relative to avatar button
     let isOpen = false;
     const closeDropdown = () => {
       isOpen = false;
       dropdown.style.display = 'none';
     };
-    const toggleDropdown = () => {
-      isOpen = !isOpen;
-      dropdown.style.display = isOpen ? 'block' : 'none';
+    const openDropdown = () => {
+      const rect = avatarBtn.getBoundingClientRect();
+      dropdown.style.top = (rect.bottom + 6) + 'px';
+      dropdown.style.left = rect.left + 'px';
+      isOpen = true;
+      dropdown.style.display = 'block';
     };
 
     avatarBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      toggleDropdown();
+      if (isOpen) closeDropdown(); else openDropdown();
     });
 
     // Close on click outside
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.profile-menu')) closeDropdown();
+      if (!e.target.closest('.profile-dropdown') && !e.target.closest('.profile-icon-btn')) {
+        closeDropdown();
+      }
     });
 
     this.sidebarElement.insertBefore(bar, this.sidebarElement.firstChild);
