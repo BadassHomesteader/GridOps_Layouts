@@ -106,33 +106,136 @@ export class Sidebar {
   }
 
   /**
-   * Set user info to display in sidebar header
+   * Set user info to display in sidebar header as a profile menu
    */
   setUser(user) {
     if (!user) return;
-    // Create user profile bar at the very top
+
+    // Build initials from user name
+    const name = user.name || user.email || '?';
+    const initials = name.split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+    // Profile menu container
     const bar = document.createElement('div');
+    bar.className = 'profile-menu';
     bar.style.cssText = `
-      padding: 8px 12px; background: #e8f0fe; border-bottom: 1px solid #ccc;
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 12px; color: #333;
+      padding: 8px 12px; border-bottom: 1px solid #ddd;
+      display: flex; align-items: center; gap: 8px;
+      position: relative;
     `;
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = user.name || user.email;
-    nameSpan.style.cssText = 'font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
 
-    bar.appendChild(nameSpan);
+    // Circular avatar button
+    const avatarBtn = document.createElement('button');
+    avatarBtn.className = 'profile-icon-btn';
+    avatarBtn.textContent = initials;
+    avatarBtn.style.cssText = `
+      width: 34px; height: 34px; border-radius: 50%; border: none;
+      background: linear-gradient(135deg, #0078d4 0%, #0f172a 100%);
+      color: white; font-weight: 700; font-size: 12px; font-family: inherit;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: box-shadow 0.15s;
+    `;
+    avatarBtn.addEventListener('mouseenter', () => {
+      avatarBtn.style.boxShadow = '0 0 0 2px #fff, 0 0 0 4px #0078d4';
+    });
+    avatarBtn.addEventListener('mouseleave', () => {
+      avatarBtn.style.boxShadow = 'none';
+    });
 
+    // Name label next to avatar
+    const nameLabel = document.createElement('span');
+    nameLabel.textContent = name;
+    nameLabel.style.cssText = `
+      font-weight: 600; font-size: 12px; color: #333;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      flex: 1; min-width: 0;
+    `;
+
+    bar.appendChild(avatarBtn);
+    bar.appendChild(nameLabel);
+
+    // Dropdown menu
+    const dropdown = document.createElement('div');
+    dropdown.className = 'profile-dropdown';
+    dropdown.style.cssText = `
+      display: none; position: absolute; top: calc(100% + 4px); left: 8px;
+      min-width: 210px; background: #fff; border: 1px solid #ddd;
+      border-radius: 12px; box-shadow: 0 8px 30px -4px rgba(0,0,0,0.15);
+      z-index: 1100; overflow: hidden;
+    `;
+
+    // Dropdown header with avatar + info
+    const header = document.createElement('div');
+    header.style.cssText = `
+      padding: 14px 16px; border-bottom: 1px solid #eee;
+      display: flex; align-items: center; gap: 10px;
+    `;
+    const headerAvatar = document.createElement('div');
+    headerAvatar.textContent = initials;
+    headerAvatar.style.cssText = `
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #0078d4 0%, #0f172a 100%);
+      color: white; font-weight: 700; font-size: 13px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    `;
+    const headerInfo = document.createElement('div');
+    headerInfo.style.cssText = 'min-width: 0;';
+    const headerName = document.createElement('div');
+    headerName.textContent = name;
+    headerName.style.cssText = 'font-weight: 600; font-size: 13px; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+    const headerEmail = document.createElement('div');
+    headerEmail.textContent = user.email || '';
+    headerEmail.style.cssText = 'font-size: 11px; color: rgba(15,23,42,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+    headerInfo.appendChild(headerName);
+    headerInfo.appendChild(headerEmail);
+    header.appendChild(headerAvatar);
+    header.appendChild(headerInfo);
+    dropdown.appendChild(header);
+
+    // Sign out button
     if (this._logout) {
+      const sep = document.createElement('div');
+      sep.style.cssText = 'height: 1px; background: #eee; margin: 0;';
+      dropdown.appendChild(sep);
+
       const logoutBtn = document.createElement('button');
-      logoutBtn.textContent = 'Sign Out';
       logoutBtn.style.cssText = `
-        background: none; border: none; color: #4a90d9; cursor: pointer;
-        font-size: 11px; font-family: inherit; padding: 0;
+        width: 100%; padding: 10px 16px; border: none; background: none;
+        font-family: inherit; font-size: 13px; color: #c53030; cursor: pointer;
+        display: flex; align-items: center; gap: 8px; transition: background 0.15s;
       `;
-      logoutBtn.addEventListener('click', this._logout);
-      bar.appendChild(logoutBtn);
+      logoutBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign out`;
+      logoutBtn.addEventListener('mouseenter', () => { logoutBtn.style.background = 'rgba(197,48,48,0.06)'; });
+      logoutBtn.addEventListener('mouseleave', () => { logoutBtn.style.background = 'none'; });
+      logoutBtn.addEventListener('click', () => {
+        closeDropdown();
+        this._logout();
+      });
+      dropdown.appendChild(logoutBtn);
     }
+
+    bar.appendChild(dropdown);
+
+    // Toggle dropdown on avatar click
+    let isOpen = false;
+    const closeDropdown = () => {
+      isOpen = false;
+      dropdown.style.display = 'none';
+    };
+    const toggleDropdown = () => {
+      isOpen = !isOpen;
+      dropdown.style.display = isOpen ? 'block' : 'none';
+    };
+
+    avatarBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDropdown();
+    });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.profile-menu')) closeDropdown();
+    });
 
     this.sidebarElement.insertBefore(bar, this.sidebarElement.firstChild);
   }
