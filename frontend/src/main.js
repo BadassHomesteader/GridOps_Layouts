@@ -28,12 +28,23 @@ import { PrintManager } from './managers/PrintManager.js';
 import { UnitManager } from './managers/UnitManager.js';
 import { UndoManager } from './managers/UndoManager.js';
 import { ProjectBrowser } from './ui/ProjectBrowser.js';
-import { init as initAuth, getUser, isAuthenticated, logout } from './auth/auth.js';
+import { init as initAuth, getUser, isAuthenticated, logout, login } from './auth/auth.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize auth first (may redirect to Microsoft login)
   await initAuth();
-  if (!isAuthenticated()) return; // auth will redirect
+
+  if (!isAuthenticated()) {
+    // Show login splash screen
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-btn').addEventListener('click', () => login());
+    return;
+  }
+
+  // Authenticated — show the app
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 
   // Get canvas element
   const canvas = document.getElementById('gridCanvas');

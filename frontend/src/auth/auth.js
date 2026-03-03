@@ -90,15 +90,22 @@ export async function init() {
             return;
         }
 
-        // Not authenticated — redirect to Microsoft login
-        console.log('[Auth] Not authenticated — redirecting to Microsoft login');
-        await msalInstance.loginRedirect({
-            scopes: loginScopes,
-            prompt: 'select_account'
-        });
+        // Not authenticated — wait for user to click sign-in
+        console.log('[Auth] Not authenticated — showing login screen');
     } catch (err) {
         console.error('[Auth] MSAL initialization error:', err);
     }
+}
+
+/**
+ * Trigger Microsoft login redirect (called from sign-in button)
+ */
+export async function login() {
+    if (!msalInstance) return;
+    await msalInstance.loginRedirect({
+        scopes: loginScopes,
+        prompt: 'select_account'
+    });
 }
 
 /**
