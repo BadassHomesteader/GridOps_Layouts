@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GridOps Layouts — Users</title>
+  <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0f4f8; --surface: #ffffff; --surface2: #eaeff5;
+      --border: #d0d8e4; --border-light: #b8c4d4;
+      --text: #0f172a; --text-dim: #4b5a6e; --text-muted: #8898a8;
+      --accent: #0078d4; --accent-dim: rgba(0,120,212,0.1);
+      --danger: #dc2626; --danger-dim: rgba(220,38,38,0.1);
+      --green: #16a34a; --green-dim: rgba(22,163,74,0.1);
+      --orange: #d97706; --orange-dim: rgba(217,119,6,0.1);
+      --row-hover: rgba(0,120,212,0.04);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+    .header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .header-brand { font-weight: 600; font-size: 14px; color: var(--accent); letter-spacing: -0.5px; }
+    .header-brand span { color: var(--text-dim); font-weight: 400; }
+    .header-title { font-size: 14px; font-weight: 600; }
+    .header-sep { width: 1px; height: 24px; background: var(--border); }
+    .header-spacer { flex: 1; }
+    .back-link { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 500; }
+    .back-link:hover { text-decoration: underline; }
+    .signin-btn { background: var(--accent); border: 1px solid var(--accent); color: #fff; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 500; }
+    .user-info { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #0078d4 0%, #0f172a 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 11px; }
+    .user-email { color: var(--text-dim); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .signout-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+    .signout-btn:hover { background: var(--danger-dim); color: var(--danger); border-color: var(--danger); }
+
+    .state-msg { text-align: center; padding: 80px 24px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .state-msg h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .state-msg p { font-size: 13px; color: var(--text-dim); }
+
+    .main-content { flex: 1; overflow-y: auto; padding: 24px; }
+    .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    .section-header { padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); flex: 1; }
+
+    .add-form { display: flex; gap: 8px; align-items: flex-end; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-dim); }
+    .form-input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-family: inherit; font-size: 13px; color: var(--text); background: var(--surface); }
+    .form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+    .form-input.email { width: 240px; }
+    .form-input.name { width: 160px; }
+    select.form-input { width: 110px; }
+
+    .tb-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+    .tb-btn:hover { background: var(--border); }
+    .tb-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tb-btn.primary:hover { background: #005a9e; }
+    .tb-btn.danger { color: var(--danger); }
+    .tb-btn.danger:hover { background: var(--danger-dim); border-color: var(--danger); }
+
+    .filter-bar { display: flex; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .filter-input { padding: 5px 10px; border: 1px solid var(--border); border-radius: 4px; font-family: inherit; font-size: 12px; color: var(--text); background: var(--surface); }
+    .filter-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+    .filter-search { width: 220px; }
+    .filter-select { width: 120px; }
+
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { background: var(--surface2); border-bottom: 2px solid var(--border); padding: 8px 12px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); text-align: left; white-space: nowrap; }
+    .data-table th.sortable { cursor: pointer; user-select: none; }
+    .data-table th.sortable:hover { background: var(--border); color: var(--text); }
+    .data-table th.sort-active { color: var(--accent); }
+    .sort-arrow { margin-left: 3px; font-size: 10px; opacity: 0.4; }
+    .sort-arrow.on { opacity: 1; }
+    .data-table td { border-bottom: 1px solid var(--border); padding: 8px 12px; font-size: 13px; vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--row-hover); }
+    .data-table td select { padding: 3px 6px; border: 1px solid var(--border); border-radius: 3px; font-family: inherit; font-size: 12px; background: var(--surface); color: var(--text); }
+    .data-table td select:focus { outline: none; border-color: var(--accent); }
+    .remove-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 15px; padding: 2px 6px; border-radius: 3px; line-height: 1; }
+    .remove-btn:hover { background: var(--danger-dim); color: var(--danger); }
+    .data-table tbody tr { cursor: pointer; }
+
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: white; padding: 10px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; z-index: 999; display: none; }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; display: none; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .modal-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+    .modal-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+    .modal-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-dim); }
+    .modal-input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-family: inherit; font-size: 13px; color: var(--text); background: var(--surface); }
+    .modal-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-brand">GridOps <span>Layouts</span></div>
+    <div class="header-sep"></div>
+    <div class="header-title">User Management</div>
+    <div class="header-spacer"></div>
+    <a href="index.html" class="back-link">← Back to Layouts</a>
+    <div class="header-sep"></div>
+    <div id="auth-area"><button class="signin-btn" onclick="signIn()">Sign in</button></div>
+  </div>
+
+  <div id="loading" class="state-msg"><h2>Loading...</h2></div>
+  <div id="access-denied" class="state-msg" style="display:none"><h2>Access Denied</h2><p>Admin role required.</p></div>
+
+  <div class="main-content" id="main-content" style="display:none">
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">Allowed Users</span>
+        <span id="user-count" style="font-size:11px;color:var(--text-muted)"></span>
+      </div>
+
+      <div class="filter-bar">
+        <input class="filter-input filter-search" type="search" placeholder="Search email or name…" oninput="filterText=this.value;renderTable()">
+        <select class="filter-input filter-select" onchange="filterRole=this.value;renderTable()">
+          <option value="">All Roles</option>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+          <option value="viewer">Viewer</option>
+        </select>
+        <select class="filter-input filter-select" onchange="filterStatus=this.value;renderTable()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <div class="add-form">
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input class="form-input email" id="add-email" type="email" placeholder="user@example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input name" id="add-name" type="text" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select class="form-input" id="add-role">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+            <option value="viewer">Viewer</option>
+          </select>
+        </div>
+        <button class="tb-btn primary" onclick="addUser()">Add User</button>
+      </div>
+
+      <table class="data-table" id="users-table">
+        <thead>
+          <tr>
+            <th class="sortable" data-col="name" onclick="setSort('name')">Name<span class="sort-arrow on"> ▲</span></th>
+            <th class="sortable" data-col="email" onclick="setSort('email')">Email<span class="sort-arrow"></span></th>
+            <th class="sortable" data-col="role" onclick="setSort('role')">Role<span class="sort-arrow"></span></th>
+            <th class="sortable" data-col="status" onclick="setSort('status')">Status<span class="sort-arrow"></span></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-backdrop" id="edit-modal">
+    <div class="modal">
+      <div class="modal-title">Edit User</div>
+      <div class="modal-field">
+        <label class="modal-label">Email</label>
+        <input class="modal-input" id="edit-email" type="text" readonly style="background:var(--surface2);color:var(--text-dim)">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Name</label>
+        <input class="modal-input" id="edit-name" type="text" placeholder="Full name">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Role</label>
+        <select class="modal-input" id="edit-role">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+          <option value="viewer">Viewer</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="tb-btn" onclick="closeEditModal()">Cancel</button>
+        <button class="tb-btn primary" onclick="saveEditModal()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MSAL_CONFIG = {
+      auth: { clientId: '6e24e899-9a39-499b-9faa-19b181c5d438', authority: 'https://login.microsoftonline.com/common', redirectUri: window.location.origin },
+      cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
+    };
+    const TOKEN_REQUEST = { scopes: ['openid', 'profile', 'email'] };
+    let msalInstance, authToken;
+
+    async function initAuth() {
+      if (typeof msal === 'undefined') throw new Error('Auth library failed to load. Check network and refresh.');
+      msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+      await msalInstance.initialize();
+      const res = await msalInstance.handleRedirectPromise();
+      if (res) { authToken = res.idToken; await boot(); return; }
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        try { const r = await msalInstance.acquireTokenSilent({ ...TOKEN_REQUEST, account: accounts[0] }); authToken = r.idToken; await boot(); }
+        catch { msalInstance.loginRedirect(TOKEN_REQUEST); }
+      } else { msalInstance.loginRedirect(TOKEN_REQUEST); }
+    }
+    function signIn() { msalInstance.loginRedirect(TOKEN_REQUEST); }
+    async function signOut() { await msalInstance.logoutRedirect(); }
+
+    function hdrs() { return { 'Content-Type': 'application/json', 'X-Auth-Token': authToken }; }
+    async function apiGet(p) { const r = await fetch('/api' + p, { headers: hdrs() }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
+    async function apiPost(p, b) { const r = await fetch('/api' + p, { method: 'POST', headers: hdrs(), body: JSON.stringify(b) }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
+    async function apiPut(p, b) { const r = await fetch('/api' + p, { method: 'PUT', headers: hdrs(), body: JSON.stringify(b) }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
+    async function apiDel(p) { const r = await fetch('/api' + p, { method: 'DELETE', headers: hdrs() }); if (!r.ok) throw new Error(await r.text()); return r.json(); }
+
+    let users = [];
+    let sortCol = 'name', sortDir = 'asc';
+    let filterText = '', filterRole = '', filterStatus = '';
+
+    function setSort(col) {
+      if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortCol = col; sortDir = 'asc'; }
+      renderTable();
+    }
+
+    async function boot() {
+      try {
+        const me = await apiGet('/me');
+        if (me.role !== 'admin') {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('access-denied').style.display = 'flex';
+          return;
+        }
+        const initials = (me.name || me.email).split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        document.getElementById('auth-area').innerHTML = `
+          <div class="user-info">
+            <div class="user-avatar">${initials}</div>
+            <span class="user-email">${me.email}</span>
+            <button class="signout-btn" onclick="signOut()">Sign out</button>
+          </div>`;
+        await loadUsers();
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+      } catch (err) {
+        document.getElementById('loading').innerHTML = '<h2>Error</h2><p>' + escHtml(err.message) + '</p>';
+      }
+    }
+
+    async function loadUsers() {
+      const data = await apiGet('/users');
+      users = data.users || [];
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('users-tbody');
+      let rows = users.filter(u => {
+        if (filterText) {
+          const q = filterText.toLowerCase();
+          if (!u.email.toLowerCase().includes(q) && !(u.name || '').toLowerCase().includes(q)) return false;
+        }
+        if (filterRole && u.role !== filterRole) return false;
+        if (filterStatus === 'active' && u.active === false) return false;
+        if (filterStatus === 'inactive' && u.active !== false) return false;
+        return true;
+      });
+
+      rows.sort((a, b) => {
+        let av, bv;
+        if (sortCol === 'email')       { av = a.email.toLowerCase(); bv = b.email.toLowerCase(); }
+        else if (sortCol === 'name')   { av = (a.name || '').toLowerCase(); bv = (b.name || '').toLowerCase(); }
+        else if (sortCol === 'role')   { av = a.role || ''; bv = b.role || ''; }
+        else if (sortCol === 'status') { av = a.active !== false ? 0 : 1; bv = b.active !== false ? 0 : 1; }
+        if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+        return sortDir === 'asc' ? av - bv : bv - av;
+      });
+
+      const shown = rows.length, total = users.length;
+      document.getElementById('user-count').textContent = shown === total
+        ? total + ' user' + (total !== 1 ? 's' : '')
+        : shown + ' of ' + total + ' users';
+
+      document.querySelectorAll('.data-table th.sortable').forEach(th => {
+        const active = th.dataset.col === sortCol;
+        th.classList.toggle('sort-active', active);
+        const arrow = th.querySelector('.sort-arrow');
+        if (arrow) { arrow.textContent = active ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''; arrow.classList.toggle('on', active); }
+      });
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">' + (users.length === 0 ? 'No users yet.' : 'No users match the filter.') + '</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(u => {
+        const isActive = u.active !== false;
+        const e = escHtml(u.email);
+        return '<tr ondblclick="openEditModal(\'' + e + '\')" title="Double-click to edit">'
+          + '<td>' + escHtml(u.name || '') + '</td>'
+          + '<td style="font-size:12px">' + e + '</td>'
+          + '<td><select onchange="changeRole(\'' + e + '\', this.value)">'
+          + '<option value="user"' + (u.role === 'user' ? ' selected' : '') + '>User</option>'
+          + '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin</option>'
+          + '<option value="viewer"' + (u.role === 'viewer' ? ' selected' : '') + '>Viewer</option>'
+          + '</select></td>'
+          + '<td><button class="tb-btn ' + (isActive ? 'danger' : 'primary') + '" style="font-size:11px;padding:3px 8px" '
+          + 'onclick="' + (isActive ? "deactivateUser('" + e + "')" : "activateUser('" + e + "')") + '">'
+          + (isActive ? 'Deactivate' : 'Activate') + '</button></td>'
+          + '<td><button class="remove-btn" onclick="removeUser(\'' + e + '\')" title="Remove user">✕</button></td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    async function addUser() {
+      const email = document.getElementById('add-email').value.trim().toLowerCase();
+      const name = document.getElementById('add-name').value.trim();
+      const role = document.getElementById('add-role').value;
+      if (!email || !email.includes('@')) { document.getElementById('add-email').focus(); return; }
+      try {
+        await apiPost('/users', { email, name, role });
+        await loadUsers();
+        document.getElementById('add-email').value = '';
+        document.getElementById('add-name').value = '';
+        toast('User added');
+      } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    async function changeRole(email, role) {
+      try {
+        await apiPut('/users', { email, role });
+        await loadUsers();
+        toast('Role updated');
+      } catch (err) {
+        await loadUsers();
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function deactivateUser(email) {
+      if (!confirm('Deactivate ' + email + '? They will lose access.')) return;
+      try {
+        await apiPut('/users', { email, active: false });
+        await loadUsers();
+        toast('User deactivated');
+      } catch (err) { await loadUsers(); alert('Error: ' + err.message); }
+    }
+
+    async function activateUser(email) {
+      try {
+        await apiPut('/users', { email, active: true });
+        await loadUsers();
+        toast('User activated');
+      } catch (err) { await loadUsers(); alert('Error: ' + err.message); }
+    }
+
+    async function removeUser(email) {
+      if (!confirm('Remove ' + email + '? This cannot be undone.')) return;
+      try {
+        const params = new URLSearchParams({ email });
+        const r = await fetch('/api/users?' + params, { method: 'DELETE', headers: hdrs() });
+        if (!r.ok) throw new Error(await r.text());
+        await loadUsers();
+        toast('User removed');
+      } catch (err) { await loadUsers(); alert('Error: ' + err.message); }
+    }
+
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg; el.style.display = 'block';
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }
+
+    function openEditModal(email) {
+      const u = users.find(u => u.email === email);
+      if (!u) return;
+      document.getElementById('edit-email').value = u.email;
+      document.getElementById('edit-name').value = u.name || '';
+      document.getElementById('edit-role').value = u.role || 'user';
+      document.getElementById('edit-modal').classList.add('open');
+      document.getElementById('edit-name').focus();
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.remove('open');
+    }
+
+    async function saveEditModal() {
+      const email = document.getElementById('edit-email').value;
+      const name = document.getElementById('edit-name').value.trim();
+      const role = document.getElementById('edit-role').value;
+      try {
+        await apiPut('/users', { email, name, role });
+        await loadUsers();
+        closeEditModal();
+        toast('User updated');
+      } catch (err) {
+        await loadUsers();
+        alert('Error: ' + err.message);
+      }
+    }
+
+    document.getElementById('edit-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('edit-modal')) closeEditModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeEditModal();
+    });
+
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const _lt = setTimeout(() => {
+        const el = document.getElementById('loading');
+        if (el && el.style.display !== 'none') el.innerHTML = '<h2>Loading timed out</h2><p>The page is taking too long. <button class="signin-btn" onclick="location.reload()">Refresh</button></p>';
+      }, 20000);
+      initAuth().catch(err => {
+        clearTimeout(_lt);
+        document.getElementById('loading').innerHTML = '<h2>Initialization Error</h2><p>' + (err.message || err) + '</p><p style="margin-top:10px"><button class="signin-btn" onclick="location.reload()">Refresh</button></p>';
+      });
+    });
+  </script>
+</body>
+</html>

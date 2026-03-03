@@ -8,3 +8,4 @@ if (typeof globalThis.crypto === 'undefined') {
 // Import all function modules so they're registered with the app
 require('./functions/projects');
 require('./functions/health');
+require('./functions/users');
